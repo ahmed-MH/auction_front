@@ -1,35 +1,113 @@
 import React, { useState, useEffect } from "react";
-import axios from 'axios';
+import axios from "axios";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-
 const AddBid = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [categories, setCategories] = useState([]); // pour les données
+  const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
+  const [formData, setFormData] = useState({
+    nomProduit: "",
+    description: "",
+    prixDepart: "",
+    montantActuel: "",
+    dateDebut: "",
+    dateFin: "",
+    categorieId: ""
+  });
 
   useEffect(() => {
-    axios.get("http://localhost:8080/api/categories")
-      .then(res => {
-        setCategories(res.data);
-      })
+    axios
+      .get("http://localhost:8080/api/categories")
+      .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
+
+  // Gestion changement des inputs
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Gestion fichiers images
   const handleFilesChange = (e) => {
     const files = Array.from(e.target.files);
     setImages((prev) => [...prev, ...files]);
   };
+
   const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
-  };    
-  const handleSubmit = (e) => {
+  };
+
+  // Upload images sur Cloudinary
+  const uploadImagesToCloudinary = async () => {
+    const uploadedUrls = [];
+    for (const img of images) {
+      const data = new FormData();
+      data.append("file", img);
+      data.append("upload_preset", "encher"); // à configurer dans Cloudinary
+
+      try {
+        const res = await axios.post(
+          "https://api.cloudinary.com/v1_1/dara2kftc/image/upload",
+          data
+        );
+        uploadedUrls.push(res.data.secure_url);
+      } catch (err) {
+        console.error("Erreur upload image :", err);
+      }
+    }
+    return uploadedUrls;
+  };
+
+  // Soumission du formulaire
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!acceptTerms) {
       alert("⚠️ Please accept the terms!");
       return;
     }
-    alert("Bid Submitted ✅");
+
+    try {
+      // 1️⃣ Upload images
+      const imageUrls = await uploadImagesToCloudinary();
+
+      // 2️⃣ Préparer payload pour Spring Boot
+      const payload = {
+        nomProduit: formData.nomProduit,
+        description: formData.description,
+        prixDepart: parseFloat(formData.prixDepart),
+        montantActuel:
+          formData.montantActuel !== ""
+            ? parseFloat(formData.montantActuel)
+            : parseFloat(formData.prixDepart),
+        dateDebut: formData.dateDebut,
+        dateFin: formData.dateFin,
+        statut: "EN_COURS", // ou EN_ATTENTE selon ton enum
+        categorie: { id: formData.categorieId },
+        images: imageUrls.map((url) => ({ url })) // backend attend list<Image>
+      };
+
+      const res = await axios.post("http://localhost:8080/api/enchers", payload);
+      alert("Enchère créée avec succès !");
+      console.log(res.data);
+
+      // Reset formulaire
+      setFormData({
+        nomProduit: "",
+        description: "",
+        prixDepart: "",
+        montantActuel: "",
+        dateDebut: "",
+        dateFin: "",
+        categorieId: ""
+      });
+      setImages([]);
+      setAcceptTerms(false);
+    } catch (err) {
+      console.error("Erreur création enchère :", err);
+      alert("Erreur lors de la création de l'enchère. Vérifiez les champs.");
+    }
   };
 
   return (
@@ -39,31 +117,44 @@ const AddBid = () => {
       <main className="flex-grow flex justify-center items-start py-16 px-4 md:px-12">
         <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 w-full max-w-3xl">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-            Create a New Auction
+            Créer une nouvelle enchère
           </h2>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Product Name */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Product Name</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Nom du produit
+              </label>
               <input
                 type="text"
-                placeholder="Enter product name"
+                name="nomProduit"
+                value={formData.nomProduit}
+                onChange={handleChange}
+                placeholder="Nom du produit"
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                required
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Category</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Catégorie
+              </label>
               <select
+                name="categorieId"
+                value={formData.categorieId}
+                onChange={handleChange}
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                defaultValue=""
+                required
               >
-                <option value="" disabled>Select category...</option>
+                <option value="" disabled>
+                  Sélectionnez une catégorie...
+                </option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.libelleCategorie} {/* ou libelle_categorie selon ton DTO */}
+                    {cat.libelleCategorie}
                   </option>
                 ))}
               </select>
@@ -71,9 +162,12 @@ const AddBid = () => {
 
             {/* Condition */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Condition (Used / New)</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Condition (Used / New)
+              </label>
               <input
                 type="text"
+                name="condition"
                 placeholder="Used or New"
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
               />
@@ -81,26 +175,70 @@ const AddBid = () => {
 
             {/* Price */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Product Price (DT)</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Prix de départ (DT)
+              </label>
               <input
                 type="number"
-                placeholder="Enter starting price"
+                name="prixDepart"
+                value={formData.prixDepart}
+                onChange={handleChange}
+                placeholder="Prix de départ"
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                required
+              />
+            </div>
+
+            {/* Date Debut */}
+            <div>
+              <label className="block text-gray-900 font-medium mb-2">
+                Date de début
+              </label>
+              <input
+                type="datetime-local"
+                name="dateDebut"
+                value={formData.dateDebut}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                required
+              />
+            </div>
+
+            {/* Date Fin */}
+            <div>
+              <label className="block text-gray-900 font-medium mb-2">
+                Date de fin
+              </label>
+              <input
+                type="datetime-local"
+                name="dateFin"
+                value={formData.dateFin}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                required
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Description</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Description
+              </label>
               <textarea
-                placeholder="Enter a detailed description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Description détaillée"
                 className="w-full px-4 py-3 border rounded-lg min-h-[140px] resize-none focus:outline-none focus:ring-2 focus:ring-orange-300"
+                required
               ></textarea>
             </div>
 
             {/* Upload Image */}
             <div>
-              <label className="block text-gray-900 font-medium mb-2">Upload Images</label>
+              <label className="block text-gray-900 font-medium mb-2">
+                Upload Images
+              </label>
               <label className="border-2 border-dashed border-gray-300 p-6 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 transition">
                 <input
                   type="file"
@@ -112,7 +250,8 @@ const AddBid = () => {
                   📁
                 </div>
                 <p className="text-gray-900 font-medium text-center">
-                  Drop files here or <span className="text-orange-500 underline">browse</span>
+                  Drop files here or{" "}
+                  <span className="text-orange-500 underline">browse</span>
                 </p>
               </label>
 
@@ -147,14 +286,18 @@ const AddBid = () => {
                 checked={acceptTerms}
                 onChange={() => setAcceptTerms(!acceptTerms)}
               />
-              <label className="text-gray-900">I accept the terms and conditions</label>
+              <label className="text-gray-900">
+                I accept the terms and conditions
+              </label>
             </div>
 
             {/* Submit */}
             <button
               type="submit"
               className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${
-                acceptTerms ? "bg-orange-500 hover:bg-orange-600" : "bg-gray-400 cursor-not-allowed"
+                acceptTerms
+                  ? "bg-orange-500 hover:bg-orange-600"
+                  : "bg-gray-400 cursor-not-allowed"
               }`}
               disabled={!acceptTerms}
             >
