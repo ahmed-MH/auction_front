@@ -7,6 +7,10 @@ import AddBid from "./pages/AddBid";
 import Products from "./pages/MyProducts";
 import Categories from "./pages/Categories";
 
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminProducts from "./pages/AdminProducts";
+import AdminUsers from "./pages/AdminUsers";
+import AdminTransactions from "./pages/AdminTransactions";
 function App() {
   return (
     <Router>
@@ -17,6 +21,12 @@ function App() {
         <Route path="/add-bid" element={<AddBid />} />
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
+        
+        <Route path="/admindashboard" element={<AdminDashboard />} />
+        <Route path="/admindashboard/products" element={<AdminProducts />} />
+        <Route path="/admindashboard/users" element={<AdminUsers />} />
+        <Route path="/admindashboard/transactions" element={<AdminTransactions />} />
+        
       </Routes>
     </Router>
   );
