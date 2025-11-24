@@ -6,7 +6,7 @@ import ProductDetails from "./pages/DetailsEnchere";
 import AddBid from "./pages/AddBid";
 import Products from "./pages/MyProducts";
 import Categories from "./pages/Categories";
-
+import Cart from "./pages/Cart";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminUsers from "./pages/AdminUsers";
