@@ -21,7 +21,7 @@ function App() {
         <Route path="/add-bid" element={<AddBid />} />
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
-        
+        <Route path="/cart" element={<Cart />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
         <Route path="/admindashboard/products" element={<AdminProducts />} />
         <Route path="/admindashboard/users" element={<AdminUsers />} />
