@@ -4,7 +4,6 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const AddBid = () => {
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -63,10 +62,14 @@ const AddBid = () => {
   // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!acceptTerms) {
-      alert("⚠️ Please accept the terms!");
-      return;
-    }
+    // Générer automatiquement dateDebut = now et dateFin = now + 3 jours
+    const now = new Date();
+    const threeDaysLater = new Date(now);
+    threeDaysLater.setDate(now.getDate() + 3);
+
+    // Format ISO compatible Spring Boot
+    const dateDebutAuto = now.toISOString().slice(0, 16);
+    const dateFinAuto = threeDaysLater.toISOString().slice(0, 16);
 
     try {
       // 1️⃣ Upload images
@@ -81,8 +84,8 @@ const AddBid = () => {
           formData.montantActuel !== ""
             ? parseFloat(formData.montantActuel)
             : parseFloat(formData.prixDepart),
-        dateDebut: formData.dateDebut,
-        dateFin: formData.dateFin,
+        dateDebut: dateDebutAuto,
+        dateFin: dateFinAuto,
         statut: "EN_COURS", // ou EN_ATTENTE selon ton enum
         categorie: { id: formData.categorieId },
         images: imageUrls.map((url) => ({ url })) // backend attend list<Image>
@@ -103,7 +106,6 @@ const AddBid = () => {
         categorieId: ""
       });
       setImages([]);
-      setAcceptTerms(false);
     } catch (err) {
       console.error("Erreur création enchère :", err);
       alert("Erreur lors de la création de l'enchère. Vérifiez les champs.");
@@ -159,61 +161,24 @@ const AddBid = () => {
                 ))}
               </select>
             </div>
-
-            {/* Condition */}
-            <div>
-              <label className="block text-gray-900 font-medium mb-2">
-                Condition (Used / New)
-              </label>
-              <input
-                type="text"
-                name="condition"
-                placeholder="Used or New"
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-              />
-            </div>
-
             {/* Price */}
             <div>
               <label className="block text-gray-900 font-medium mb-2">
                 Prix de départ (DT)
               </label>
               <input
-                type="number"
+                type="text"
                 name="prixDepart"
                 value={formData.prixDepart}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  // Autorise uniquement les chiffres
+                  if (/^\d*$/.test(value)) {
+                    setFormData({ ...formData, prixDepart: value });
+                  }
+                }}
                 placeholder="Prix de départ"
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-                required
-              />
-            </div>
-
-            {/* Date Debut */}
-            <div>
-              <label className="block text-gray-900 font-medium mb-2">
-                Date de début
-              </label>
-              <input
-                type="datetime-local"
-                name="dateDebut"
-                value={formData.dateDebut}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-                required
-              />
-            </div>
-
-            {/* Date Fin */}
-            <div>
-              <label className="block text-gray-900 font-medium mb-2">
-                Date de fin
-              </label>
-              <input
-                type="datetime-local"
-                name="dateFin"
-                value={formData.dateFin}
-                onChange={handleChange}
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                 required
               />
@@ -278,28 +243,10 @@ const AddBid = () => {
               )}
             </div>
 
-            {/* Terms */}
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="w-4 h-4"
-                checked={acceptTerms}
-                onChange={() => setAcceptTerms(!acceptTerms)}
-              />
-              <label className="text-gray-900">
-                I accept the terms and conditions
-              </label>
-            </div>
-
             {/* Submit */}
             <button
               type="submit"
-              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${
-                acceptTerms
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "bg-gray-400 cursor-not-allowed"
-              }`}
-              disabled={!acceptTerms}
+              className='w-full py-4 rounded-lg text-lg font-semibold text-white transition bg-orange-500 hover:bg-orange-600 '
             >
               Submit Auction
             </button>
