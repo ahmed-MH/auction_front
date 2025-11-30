@@ -23,7 +23,7 @@ const Products = () => {
       try {
         const token = localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:8080/api/encheres", { headers });
+        const res = await axios.get("http://localhost:8080/api/enchers", { headers });
         setProducts(res.data);
       } catch (err) {
         console.error("Erreur récupération des produits :", err);

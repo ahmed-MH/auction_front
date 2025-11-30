@@ -6,14 +6,15 @@ import ProductDetails from "./pages/DetailsEnchere";
 import AddBid from "./pages/AddBid";
 import Products from "./pages/MyProducts";
 import Categories from "./pages/Categories";
-import Cart from "./pages/Cart";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import MyAccount from "./pages/MyAccount";
 import Contact from "./pages/Contact";
+import EditBid from "./pages/EditBid";
 import HotDeals from "./pages/HotDeals";
+import Wishlist from "./pages/Wishlist";
 function App() {
   return (
     <Router>
@@ -22,9 +23,10 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/add-bid" element={<AddBid />} />
+        <Route path="/edit-bid" element={<EditBid />} />
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
-        <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
         <Route path="/admindashboard/products" element={<AdminProducts />} />
         <Route path="/admindashboard/users" element={<AdminUsers />} />

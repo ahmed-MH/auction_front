@@ -30,6 +30,21 @@ const Header = () => {
       setSearchTerm("");
     }
   };
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  useEffect(() => {
+    const wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+    setWishlistCount(wishlist.length);
+
+    // Optionnel : écouter les changements du localStorage
+    const handleStorageChange = () => {
+      const updatedWishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+      setWishlistCount(updatedWishlist.length);
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") handleSearch();
@@ -161,22 +176,11 @@ const Header = () => {
               <Heart className="w-6 h-6" />
               <span className="text-sm mt-1">Your Wishlist</span>
               {/* Badge */}
-              <div className="absolute -top-2 -right-2 bg-[#FF6B39] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                2
-              </div>
-            </Link>
-
-            {/* Shopping Cart */}
-            <Link
-              to="/cart"
-              className="relative flex flex-col items-center text-[#014152] hover:text-orange-500 transition-colors"
-            >
-              <ShoppingCart className="w-6 h-6" />
-              <span className="text-sm mt-1">Your Cart</span>
-              {/* Badge */}
-              <div className="absolute -top-2 -right-2 bg-[#FF6B39] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                2
-              </div>
+              {wishlistCount > 0 && (
+                <div className="absolute -top-2 -right-2 bg-[#FF6B39] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                  {wishlistCount}
+                </div>
+              )}
             </Link>
           </nav>
         </div>

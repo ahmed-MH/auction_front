@@ -95,24 +95,42 @@ const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
     };
 
     // Handle Account Deletion
+    // Handle Account Deletion
     const handleDeleteAccount = async () => {
         if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
             return;
         }
 
         setLoading(true);
+        setMessage({ type: "", text: "" });
+
         try {
-            await axios.delete("http://localhost:8080/api/profile/delete", {
-                headers: getHeaders(),
-            });
+            await axios.delete(
+                "http://localhost:8080/api/profile/delete",
+                { headers: getHeaders() });
+
+            // Suppression OK → Logout
             onLogout();
+
         } catch (err) {
             console.error(err);
-            const errorMsg = err.response?.data?.message || err.response?.data || "Failed to delete account.";
-            setMessage({ type: "error", text: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) });
+
+            // Récupération message backend
+            const errorMsg =
+                err.response?.data ||
+                err.response?.data?.message ||
+                "Failed to delete account.";
+
+            // Affichage dans le cadre rouge
+            setMessage({
+                type: "error",
+                text: typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg)
+            });
+
             setLoading(false);
         }
     };
+
 
     if (!isOpen) return null;
 

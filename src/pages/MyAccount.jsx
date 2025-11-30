@@ -26,6 +26,33 @@ const MyAccount = () => {
 
                 const userData = JSON.parse(storedUser);
                 setUser(userData);
+                const fetchStats = async (userId, token) => {
+                    try {
+
+                        const [auctionsRes, bidsRes] = await Promise.all([
+                            fetch(`http://localhost:8080/api/enchers/utilisateur/${userId}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }),
+                            fetch(`http://localhost:8080/api/participations/utilisateur/${userId}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            })
+                        ]);
+
+                        const auctions = await auctionsRes.json();
+                        const bids = await bidsRes.json();
+
+                        setStats({
+                            auctions: auctions.length,
+                            bids: bids.length
+                        });
+
+                    } catch (error) {
+                        console.error("Erreur récupération stats :", error);
+                    }
+                };
+                
+                // fetch real stats
+                await fetchStats(userData.id, token);
 
                 // TODO: Fetch actual stats from API
                 // const response = await fetch(`/api/users/${userData.id}/stats`, {
