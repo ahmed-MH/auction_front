@@ -62,6 +62,7 @@ const Auth = () => {
   
         if (isLogin) {
           localStorage.setItem("token", data.token);
+          localStorage.setItem("userId", data.id);
           localStorage.setItem("user", JSON.stringify(data));
   
           // 🔔 Affichage console pour debug

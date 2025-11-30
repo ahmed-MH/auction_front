@@ -62,12 +62,18 @@ const AddBid = () => {
   // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Générer automatiquement dateDebut = now et dateFin = now + 3 jours
+
+    // Récupération de l'utilisateur connecté
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      alert("Vous devez être connecté pour ajouter une enchère.");
+      return;
+    }
+
+    // dates auto
     const now = new Date();
     const threeDaysLater = new Date(now);
     threeDaysLater.setDate(now.getDate() + 3);
-
-    // Format ISO compatible Spring Boot
     const dateDebutAuto = now.toISOString().slice(0, 16);
     const dateFinAuto = threeDaysLater.toISOString().slice(0, 16);
 
@@ -86,16 +92,18 @@ const AddBid = () => {
             : parseFloat(formData.prixDepart),
         dateDebut: dateDebutAuto,
         dateFin: dateFinAuto,
-        statut: "EN_COURS", // ou EN_ATTENTE selon ton enum
+        statut: "EN_COURS",
         categorie: { id: formData.categorieId },
-        images: imageUrls.map((url) => ({ url })) // backend attend list<Image>
+        images: imageUrls.map((url) => ({ url })),
+        createurId: userId  // ✅ AJOUT OBLIGATOIRE
       };
 
       const res = await axios.post("http://localhost:8080/api/enchers", payload);
+
       alert("Enchère créée avec succès !");
       console.log(res.data);
 
-      // Reset formulaire
+      // reset form
       setFormData({
         nomProduit: "",
         description: "",
@@ -106,9 +114,10 @@ const AddBid = () => {
         categorieId: ""
       });
       setImages([]);
+
     } catch (err) {
       console.error("Erreur création enchère :", err);
-      alert("Erreur lors de la création de l'enchère. Vérifiez les champs.");
+      alert("Erreur lors de la création de l'enchère.");
     }
   };
 
@@ -123,7 +132,8 @@ const AddBid = () => {
           </h2>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Product Name */}
+
+            {/* Nom Produit */}
             <div>
               <label className="block text-gray-900 font-medium mb-2">
                 Nom du produit
@@ -139,7 +149,7 @@ const AddBid = () => {
               />
             </div>
 
-            {/* Category */}
+            {/* Catégorie */}
             <div>
               <label className="block text-gray-900 font-medium mb-2">
                 Catégorie
@@ -148,7 +158,7 @@ const AddBid = () => {
                 name="categorieId"
                 value={formData.categorieId}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+                className="w-full px-4 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-300"
                 required
               >
                 <option value="" disabled>
@@ -161,7 +171,8 @@ const AddBid = () => {
                 ))}
               </select>
             </div>
-            {/* Price */}
+
+            {/* Prix */}
             <div>
               <label className="block text-gray-900 font-medium mb-2">
                 Prix de départ (DT)
@@ -172,8 +183,6 @@ const AddBid = () => {
                 value={formData.prixDepart}
                 onChange={(e) => {
                   const value = e.target.value;
-
-                  // Autorise uniquement les chiffres
                   if (/^\d*$/.test(value)) {
                     setFormData({ ...formData, prixDepart: value });
                   }
@@ -199,11 +208,12 @@ const AddBid = () => {
               ></textarea>
             </div>
 
-            {/* Upload Image */}
+            {/* Upload Images */}
             <div>
               <label className="block text-gray-900 font-medium mb-2">
                 Upload Images
               </label>
+
               <label className="border-2 border-dashed border-gray-300 p-6 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 transition">
                 <input
                   type="file"
@@ -220,7 +230,7 @@ const AddBid = () => {
                 </p>
               </label>
 
-              {/* Aperçu des images */}
+              {/* Aperçu images */}
               {images.length > 0 && (
                 <div className="mt-4 grid grid-cols-3 gap-4">
                   {images.map((img, index) => (
@@ -246,7 +256,7 @@ const AddBid = () => {
             {/* Submit */}
             <button
               type="submit"
-              className='w-full py-4 rounded-lg text-lg font-semibold text-white transition bg-orange-500 hover:bg-orange-600 '
+              className="w-full py-4 rounded-lg text-lg font-semibold text-white transition bg-orange-500 hover:bg-orange-600"
             >
               Submit Auction
             </button>

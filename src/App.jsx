@@ -11,6 +11,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
+import MyAccount from "./pages/MyAccount";
+import Contact from "./pages/Contact";
+import HotDeals from "./pages/HotDeals";
 function App() {
   return (
     <Router>
@@ -26,7 +29,10 @@ function App() {
         <Route path="/admindashboard/products" element={<AdminProducts />} />
         <Route path="/admindashboard/users" element={<AdminUsers />} />
         <Route path="/admindashboard/transactions" element={<AdminTransactions />} />
-        
+        <Route path="/account" element={<MyAccount />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/hot-deals" element={<HotDeals />} />
+
       </Routes>
     </Router>
   );
