@@ -13,7 +13,9 @@ const Home = () => {
   useEffect(() => {
     const fetchAuctions = async () => {
       try {
-        const res = await axios.get("http://localhost:8080/api/enchers");
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get("http://localhost:8080/api/encheres", { headers });
         const allAuctions = res.data;
 
         // Filter auctions
@@ -27,13 +29,13 @@ const Home = () => {
           new Date(a.dateFin) <= new Date()
         );
 
-        // Map to UI format
+        // Map to UI format - UPDATED to use imageUrls
         const mapAuction = (a) => ({
           id: a.id,
           name: a.nomProduit,
           price: (a.montantActuel || a.prixDepart) + " DT",
           time: calculateTimeLeft(a.dateFin),
-          image: a.images && a.images.length > 0 ? a.images[0].url : "https://via.placeholder.com/400x300?text=No+Image",
+          image: a.imageUrls && a.imageUrls.length > 0 ? a.imageUrls[0] : "https://via.placeholder.com/400x300?text=No+Image",
           dateFin: a.dateFin,
           status: a.statut
         });

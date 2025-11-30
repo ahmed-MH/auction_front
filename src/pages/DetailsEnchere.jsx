@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Phone , User, ArrowLeft, ArrowRight } from "lucide-react";
+import { Heart, Phone, User, ArrowLeft, ArrowRight } from "lucide-react";
 import axios from "axios";
 
 import Header from "../components/Header";
@@ -21,7 +21,9 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:8080/api/enchers/${id}`);
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get(`http://localhost:8080/api/encheres/${id}`, { headers });
         setProduct(res.data);
 
         // Si ton backend fournit une liste de participants avec montant, tu peux l'utiliser
@@ -52,9 +54,11 @@ const ProductDetails = () => {
       return;
     }
     try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       // Ici tu peux appeler ton endpoint pour placer l'enchère
-      // Exemple : POST /api/enchers/{id}/bid
-      await axios.post(`http://localhost:8080/api/enchers/${id}/bid`, { montant: userPrice });
+      // Exemple : POST /api/encheres/{id}/bid
+      await axios.post(`http://localhost:8080/api/encheres/${id}/bid`, { montant: userPrice }, { headers });
       alert(`✅ Your bid (${userPrice} DT) has been submitted!`);
       setUserPrice("");
 
@@ -90,7 +94,7 @@ const ProductDetails = () => {
         <div className="flex flex-col md:flex-row gap-8 bg-white rounded-xl p-6 md:p-8 shadow-md">
           <div className="flex-shrink-0 w-full md:w-[320px] h-[400px]">
             <img
-              src={product.images && product.images.length > 0 ? product.images[0].url : "https://via.placeholder.com/400x300?text=No+Image"}
+              src={product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : "https://via.placeholder.com/400x300?text=No+Image"}
               alt={product.nomProduit}
               className="w-full h-full object-cover rounded-lg"
             />
@@ -110,10 +114,10 @@ const ProductDetails = () => {
               </p>
               <div className="flex items-center space-x-2">
                 <button className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition">
-                  <Heart className="w-4 h-4"/>
+                  <Heart className="w-4 h-4" />
                 </button>
                 <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
-                  <Phone className="w-4 h-4"/>
+                  <Phone className="w-4 h-4" />
                 </button>
               </div>
             </div>

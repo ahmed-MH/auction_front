@@ -12,7 +12,9 @@ const HotDeals = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const res = await axios.get("http://localhost:8080/api/enchers");
+                const token = localStorage.getItem("token");
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const res = await axios.get("http://localhost:8080/api/encheres", { headers });
                 // Filter/Sort logic for "Hot Deals"
                 // For now, let's assume "Hot" means ending soon or randomly selected for demo
                 // We'll sort by dateFin if available, otherwise just take the first few
@@ -84,7 +86,7 @@ const HotDeals = () => {
                                     {/* Image Container */}
                                     <div className="relative h-64 overflow-hidden bg-gray-100">
                                         <img
-                                            src={product.images && product.images.length > 0 ? product.images[0].url : "https://via.placeholder.com/400x300?text=No+Image"}
+                                            src={product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : "https://via.placeholder.com/400x300?text=No+Image"}
                                             alt={product.nomProduit}
                                             className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                                         />

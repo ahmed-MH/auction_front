@@ -21,7 +21,9 @@ const Products = () => {
     // Récupération des enchères depuis l'API
     const fetchProducts = async () => {
       try {
-        const res = await axios.get("http://localhost:8080/api/enchers");
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get("http://localhost:8080/api/encheres", { headers });
         setProducts(res.data);
       } catch (err) {
         console.error("Erreur récupération des produits :", err);
@@ -80,7 +82,7 @@ const Products = () => {
                 className="bg-white border rounded-xl shadow hover:shadow-lg transition p-3"
               >
                 <img
-                  src={product.images && product.images.length > 0 ? product.images[0].url : "https://via.placeholder.com/400x300?text=No+Image"}
+                  src={product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : "https://via.placeholder.com/400x300?text=No+Image"}
                   alt={product.nomProduit}
                   className="h-48 w-full object-cover rounded-lg"
                 />

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const AddBid = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -15,6 +17,7 @@ const AddBid = () => {
     dateFin: "",
     categorieId: ""
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     axios
@@ -47,15 +50,20 @@ const AddBid = () => {
       data.append("upload_preset", "encher"); // à configurer dans Cloudinary
 
       try {
+        console.log("Uploading image to Cloudinary:", img.name);
         const res = await axios.post(
           "https://api.cloudinary.com/v1_1/dara2kftc/image/upload",
           data
         );
+        console.log("Upload successful:", res.data.secure_url);
         uploadedUrls.push(res.data.secure_url);
       } catch (err) {
-        console.error("Erreur upload image :", err);
+        console.error("Erreur upload image:", img.name, err);
+        console.error("Error details:", err.response?.data || err.message);
+        // Continue with other images even if one fails
       }
     }
+    console.log("Total images uploaded:", uploadedUrls.length, "out of", images.length);
     return uploadedUrls;
   };
 
@@ -65,10 +73,14 @@ const AddBid = () => {
 
     // Récupération de l'utilisateur connecté
     const userId = localStorage.getItem("userId");
-    if (!userId) {
+    const token = localStorage.getItem("token"); // Get token
+
+    if (!userId || !token) {
       alert("Vous devez être connecté pour ajouter une enchère.");
       return;
     }
+
+    setLoading(true); // Start loading
 
     // dates auto
     const now = new Date();
@@ -77,11 +89,18 @@ const AddBid = () => {
     const dateDebutAuto = now.toISOString().slice(0, 16);
     const dateFinAuto = threeDaysLater.toISOString().slice(0, 16);
 
+    // Log token for debugging
+    console.log("Using Token:", token);
+    console.log("Values - UserID:", userId, "CategoryID:", formData.categorieId);
+
     try {
       // 1️⃣ Upload images
+      console.log("Starting image upload. Number of images:", images.length);
       const imageUrls = await uploadImagesToCloudinary();
+      console.log("Image URLs received from Cloudinary:", imageUrls);
 
       // 2️⃣ Préparer payload pour Spring Boot
+      // Backend expects EncherCreateDTO with flat IDs: getCategorieId() and getCreateurId()
       const payload = {
         nomProduit: formData.nomProduit,
         description: formData.description,
@@ -93,12 +112,19 @@ const AddBid = () => {
         dateDebut: dateDebutAuto,
         dateFin: dateFinAuto,
         statut: "EN_COURS",
-        categorie: { id: formData.categorieId },
+        categorieId: parseInt(formData.categorieId), // Flat ID
         images: imageUrls.map((url) => ({ url })),
-        createurId: userId  // ✅ AJOUT OBLIGATOIRE
+        createurId: parseInt(userId) // Flat ID
       };
 
-      const res = await axios.post("http://localhost:8080/api/enchers", payload);
+      console.log("Sending payload:", payload);
+
+      const res = await axios.post("http://localhost:8080/api/encheres", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
 
       alert("Enchère créée avec succès !");
       console.log(res.data);
@@ -117,7 +143,43 @@ const AddBid = () => {
 
     } catch (err) {
       console.error("Erreur création enchère :", err);
-      alert("Erreur lors de la création de l'enchère.");
+
+      let errorMessage = "Erreur lors de la création de l'enchère.";
+      const responseData = err.response?.data;
+
+      if (err.response) {
+        errorMessage += ` (Status: ${err.response.status})`;
+
+        // Extract detailed message
+        let serverMessage = "";
+        if (typeof responseData === 'string') {
+          serverMessage = responseData;
+        } else if (responseData?.message) {
+          serverMessage = responseData.message;
+        }
+
+        if (serverMessage) {
+          errorMessage += `\nDétails: ${serverMessage}`;
+        }
+
+        // Handle Session Expiry (Check for "JWT" in the message)
+        if (err.response.status === 403 || (serverMessage && serverMessage.includes("JWT"))) {
+          alert("Votre session a expiré ou est invalide. Veuillez vous reconnecter.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("user");
+          navigate("/auth");
+          return;
+        }
+      } else if (err.request) {
+        errorMessage += "\nPas de réponse du serveur. Vérifiez votre connexion.";
+      } else {
+        errorMessage += `\n${err.message}`;
+      }
+
+      alert(errorMessage);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -256,9 +318,11 @@ const AddBid = () => {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full py-4 rounded-lg text-lg font-semibold text-white transition bg-orange-500 hover:bg-orange-600"
+              disabled={loading}
+              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+                }`}
             >
-              Submit Auction
+              {loading ? "Creating Auction..." : "Submit Auction"}
             </button>
           </form>
         </div>
