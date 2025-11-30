@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import ProductDetails from "./pages/DetailsEnchere";
@@ -14,9 +15,12 @@ import AdminTransactions from "./pages/AdminTransactions";
 import MyAccount from "./pages/MyAccount";
 import Contact from "./pages/Contact";
 import HotDeals from "./pages/HotDeals";
+import Wishlist from "./pages/Wishlist";
+import EditAuction from "./pages/EditAuction";
 function App() {
   return (
     <Router>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
@@ -32,6 +36,8 @@ function App() {
         <Route path="/account" element={<MyAccount />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/hot-deals" element={<HotDeals />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/edit-auction/:id" element={<EditAuction />} />
 
       </Routes>
     </Router>

@@ -1,23 +1,35 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
+import api from "../services/api";
 import Navbar from "./Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { Phone, Mail, MapPin, User, LogOut, ChevronDown, ChevronUp , ShoppingCart, Heart} from "lucide-react";
+import { Phone, Mail, MapPin, User, LogOut, ChevronDown, ChevronUp, ShoppingCart, Heart } from "lucide-react";
 
 const Header = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriesOpen, setCategoriesOpen] = useState(false); // pour le dropdown
   const [categories, setCategories] = useState([]); // pour les données
+
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("user"));
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   useEffect(() => {
-    axios.get("http://localhost:8080/api/categories")
-      .then(res => {
-        setCategories(res.data);
-      })
-      .catch(err => console.error("Erreur chargement catégories :", err));
-  }, []);
+    // Fetch categories
+    api.get("/categories")
+      .then(res => setCategories(Array.isArray(res.data) ? res.data : []))
+      .catch(err => {
+        console.error("Erreur chargement catégories :", err);
+        setCategories([]);
+      });
+
+    // Fetch wishlist count if logged in
+    if (isLoggedIn) {
+      api.get("/wishlist")
+        .then(res => setWishlistCount(res.data?.length || 0))
+        .catch(err => console.error("Erreur chargement wishlist :", err));
+    }
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -120,11 +132,11 @@ const Header = () => {
                   {categories.map((cat) => (
                     <Link
                       key={cat.id}
-                      to={`/categories/${cat.libelleCategorie.toLowerCase().replace(/ & | /g, "-")}`}
+                      to={`/categories/${(cat.libelleCategorie || "").toLowerCase().replace(/ & | /g, "-")}`}
                       className="block px-4 py-2 text-gray-700 hover:bg-orange-100 hover:text-orange-600 transition-colors"
                       onClick={() => setCategoriesOpen(false)}
                     >
-                      {cat.libelleCategorie}
+                      {cat.libelleCategorie || "Category"}
                     </Link>
                   ))}
                 </div>
@@ -161,9 +173,11 @@ const Header = () => {
               <Heart className="w-6 h-6" />
               <span className="text-sm mt-1">Your Wishlist</span>
               {/* Badge */}
-              <div className="absolute -top-2 -right-2 bg-[#FF6B39] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                2
-              </div>
+              {wishlistCount > 0 && (
+                <div className="absolute -top-2 -right-2 bg-[#FF6B39] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                  {wishlistCount}
+                </div>
+              )}
             </Link>
 
             {/* Shopping Cart */}

@@ -1,11 +1,3 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Phone , User, ArrowLeft, ArrowRight } from "lucide-react";
-import axios from "axios";
-
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,13 +7,14 @@ const ProductDetails = () => {
   const [userPrice, setUserPrice] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [loading, setLoading] = useState(true);
+  const [isLiked, setIsLiked] = useState(false);
 
   const isLoggedIn = !!localStorage.getItem("user");
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:8080/api/enchers/${id}`);
+        const res = await api.get(`/enchers/${id}`);
         setProduct(res.data);
 
         // Si ton backend fournit une liste de participants avec montant, tu peux l'utiliser
@@ -44,24 +37,62 @@ const ProductDetails = () => {
     };
 
     fetchProduct();
+
+    checkWishlistStatus();
   }, [id]);
+
+  const checkWishlistStatus = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await api.get("/wishlist");
+      if (Array.isArray(res.data)) {
+        const found = res.data.some(item => item.id === parseInt(id));
+        setIsLiked(found);
+      }
+    } catch (err) {
+      console.error("Error checking wishlist:", err);
+    }
+  };
+
+  const toggleWishlist = async () => {
+    if (!isLoggedIn) {
+      toast.error("Please login to add to wishlist");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      if (isLiked) {
+        await api.delete(`/wishlist/${id}`);
+        toast.success("Removed from wishlist");
+        setIsLiked(false);
+      } else {
+        await api.post(`/wishlist/add/${id}`);
+        toast.success("Added to wishlist");
+        setIsLiked(true);
+      }
+    } catch (err) {
+      console.error("Wishlist error:", err);
+      toast.error("Could not update wishlist");
+    }
+  };
 
   const handleBid = async () => {
     if (!userPrice) {
-      alert("⚠️ Please enter your bid amount!");
+      toast.error("⚠️ Please enter your bid amount!");
       return;
     }
     try {
       // Ici tu peux appeler ton endpoint pour placer l'enchère
       // Exemple : POST /api/enchers/{id}/bid
-      await axios.post(`http://localhost:8080/api/enchers/${id}/bid`, { montant: userPrice });
-      alert(`✅ Your bid (${userPrice} DT) has been submitted!`);
+      await api.post(`/enchers/${id}/bid`, { montant: userPrice });
+      toast.success(`✅ Your bid (${userPrice} DT) has been submitted!`);
       setUserPrice("");
 
       // Rafraîchir la liste des enchères si nécessaire
     } catch (err) {
       console.error("Erreur lors de l'enchère :", err);
-      alert("⚠️ Erreur lors de la soumission de votre enchère !");
+      toast.error("⚠️ Erreur lors de la soumission de votre enchère !");
     }
   };
 
@@ -109,11 +140,14 @@ const ProductDetails = () => {
                 Initial price: <span className="text-orange-500 font-semibold">{product.prixDepart} DT</span>
               </p>
               <div className="flex items-center space-x-2">
-                <button className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition">
-                  <Heart className="w-4 h-4"/>
+                <button
+                  onClick={toggleWishlist}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isLiked ? "bg-red-100 text-red-500" : "bg-gray-200 text-gray-400 hover:text-white hover:bg-[#FF6B39]"}`}
+                >
+                  <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
                 </button>
                 <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
-                  <Phone className="w-4 h-4"/>
+                  <Phone className="w-4 h-4" />
                 </button>
               </div>
             </div>

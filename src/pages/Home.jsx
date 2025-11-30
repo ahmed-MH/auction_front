@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { AuctionCard } from '../components/ProductCard';
@@ -13,8 +13,8 @@ const Home = () => {
   useEffect(() => {
     const fetchAuctions = async () => {
       try {
-        const res = await axios.get("http://localhost:8080/api/enchers");
-        const allAuctions = res.data;
+        const res = await api.get("/enchers");
+        const allAuctions = Array.isArray(res.data) ? res.data : [];
 
         // Filter auctions
         const current = allAuctions.filter(a =>
@@ -42,6 +42,8 @@ const Home = () => {
         setEndedAuctions(ended.slice(0, 4).map(mapAuction)); // Limit ended to 4
       } catch (err) {
         console.error("Error fetching auctions:", err);
+        console.error("Error details:", err.response?.data);
+        console.error("Error status:", err.response?.status);
       } finally {
         setLoading(false);
       }

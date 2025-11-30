@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "axios"; // Keep axios for Cloudinary
+import { toast } from "react-hot-toast";
+import api from "../services/api";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -17,8 +19,8 @@ const AddBid = () => {
   });
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/categories")
+    api
+      .get("/categories")
       .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
@@ -66,7 +68,7 @@ const AddBid = () => {
     // Récupération de l'utilisateur connecté
     const userId = localStorage.getItem("userId");
     if (!userId) {
-      alert("Vous devez être connecté pour ajouter une enchère.");
+      toast.error("Vous devez être connecté pour ajouter une enchère.");
       return;
     }
 
@@ -95,12 +97,12 @@ const AddBid = () => {
         statut: "EN_COURS",
         categorie: { id: formData.categorieId },
         images: imageUrls.map((url) => ({ url })),
-        createurId: userId  // ✅ AJOUT OBLIGATOIRE
+        createur: { id: userId }  // ✅ Changed from createurId to createur object
       };
 
-      const res = await axios.post("http://localhost:8080/api/enchers", payload);
+      const res = await api.post("/enchers", payload);
 
-      alert("Enchère créée avec succès !");
+      toast.success("Enchère créée avec succès !");
       console.log(res.data);
 
       // reset form
@@ -117,7 +119,7 @@ const AddBid = () => {
 
     } catch (err) {
       console.error("Erreur création enchère :", err);
-      alert("Erreur lors de la création de l'enchère.");
+      toast.error("Erreur lors de la création de l'enchère.");
     }
   };
 

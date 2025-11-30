@@ -1,87 +1,67 @@
 // Auth.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import api from "../services/api";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const Auth = () => {
-    const [isLogin, setIsLogin] = useState(true);
-    const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
-    const [error, setError] = useState("");
-    const navigate = useNavigate();
-  
-    const handleChange = (e) => {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-  
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      const { nom, email, password } = formData;
-  
-      if (!email || !password || (!isLogin && !nom)) {
-        setError("Tous les champs obligatoires doivent être remplis");
-        return;
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { nom, email, password } = formData;
+
+    if (!email || !password || (!isLogin && !nom)) {
+      toast.error("Tous les champs obligatoires doivent être remplis");
+      return;
+    }
+
+    setError("");
+
+    try {
+      const endpoint = isLogin ? "/auth/authenticate" : "/auth/register";
+
+      const body = isLogin
+        ? { email, password }
+        : { nom, email, password, roles: ["USER"] };
+
+      const response = await api.post(endpoint, body);
+      const data = response.data;
+
+      if (isLogin) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.id);
+        localStorage.setItem("user", JSON.stringify(data));
+
+        // 🔔 Affichage console pour debug
+        console.log("Utilisateur connecté !");
+        toast.success("Connexion réussie !");
+        console.log("Infos utilisateur :", data);
+
+        navigate("/");
+      } else {
+        toast.success("Inscription réussie ! Vous pouvez maintenant vous connecter.");
+        console.log("Nouvel utilisateur créé :", data);
+        setIsLogin(true);
+        setFormData({ nom: "", email: "", password: "" });
       }
-  
-      setError("");
-  
-      try {
-        const url = isLogin
-          ? "http://localhost:8080/api/auth/authenticate"
-          : "http://localhost:8080/api/auth/register";
-  
-        const body = isLogin
-          ? { email, password }
-          : { nom, email, password, roles: ["USER"] };
-  
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-  
-        // Toujours lire la réponse JSON pour éviter l'erreur Unexpected token
-        let data;
-        try {
-          data = await response.json();
-        } catch {
-          data = { message: await response.text() };
-        }
-  
-        if (!response.ok) {
-          const errMsg = data?.message || "Erreur serveur";
-          if (data?.details) {
-            const details = Object.values(data.details).join(", ");
-            setError(`${errMsg}: ${details}`);
-          } else {
-            setError(errMsg);
-          }
-          console.error("Erreur Auth:", data);
-          return;
-        }
-  
-        if (isLogin) {
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("userId", data.id);
-          localStorage.setItem("user", JSON.stringify(data));
-  
-          // 🔔 Affichage console pour debug
-          console.log("Utilisateur connecté !");
-          console.log("Infos utilisateur :", data);
-  
-          navigate("/");
-        } else {
-          alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-          console.log("Nouvel utilisateur créé :", data);
-          setIsLogin(true);
-          setFormData({ nom: "", email: "", password: "" });
-        }
-      } catch (err) {
-        setError(err.message || "Erreur réseau");
-        console.error("Erreur réseau :", err);
-      }
-    };
-  
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || "Erreur réseau";
+      toast.error(errMsg);
+      setError(errMsg);
+      console.error("Erreur Auth :", err);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
