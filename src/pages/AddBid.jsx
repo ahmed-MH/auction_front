@@ -3,9 +3,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { Navigate } from "react-router-dom";
 
 
-const AddBid = () => {
+const AddBid = ({ currentUser }) => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
@@ -18,6 +19,7 @@ const AddBid = () => {
     dateFin: "",
     categorieId: ""
   });
+  
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,6 +28,10 @@ const AddBid = () => {
       .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
+  
+  if (!currentUser || currentUser.role !== "USER") {
+    return <Navigate to="/auth" replace />;
+  }
 
   // Gestion changement des inputs
   const handleChange = (e) => {

@@ -377,7 +377,9 @@ const ProductDetails = () => {
               </div>
 
               <div className="mb-4">
-                <p className="text-sm text-gray-500">Enchère actuelle:</p>
+                <p className="text-sm text-gray-500">
+                  {isEnded ? "Montant final:" : "Enchère actuelle:"}
+                </p>
                 <span className="text-4xl font-bold text-orange-600">
                   {product.montantActuel} DT
                 </span>
@@ -426,7 +428,7 @@ const ProductDetails = () => {
                   <p className="text-red-600 font-semibold">
                     {isOwner
                       ? "Vous êtes le créateur de cette enchère"
-                      : "Enchère terminée"}
+                      : `Enchère terminée- Gagnant : ${product.gagnantId ? participations.find(p => p.utilisateurId === product.gagnantId)?.nomUtilisateur : "Aucun"}`}
                   </p>
                 )}
               </div>

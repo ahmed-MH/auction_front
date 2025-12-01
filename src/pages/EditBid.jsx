@@ -3,8 +3,9 @@ import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { Navigate } from "react-router-dom";
 
-const EditBid = () => {
+const EditBid = ({ currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [categories, setCategories] = useState([]);
@@ -45,7 +46,9 @@ const EditBid = () => {
       setImages(product.imageUrls?.map(url => ({ url })) || []);
     }
   }, [product]);
-
+  if (!currentUser || currentUser.role !== "USER") {
+    return <Navigate to="/auth" replace />;
+  }
   // Gestion inputs
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

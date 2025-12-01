@@ -1,4 +1,4 @@
-import React from "react";
+import React,{ useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -16,14 +16,20 @@ import EditBid from "./pages/EditBid";
 import HotDeals from "./pages/HotDeals";
 import Wishlist from "./pages/Wishlist";
 function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  useEffect(() => {
+    // Récupère l'utilisateur depuis localStorage au chargement
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) setCurrentUser(user);
+  }, []);
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/add-bid" element={<AddBid />} />
-        <Route path="/edit-bid" element={<EditBid />} />
+        <Route path="/add-bid" element={<AddBid currentUser={currentUser} />} />
+        <Route path="/edit-bid" element={<EditBid currentUser={currentUser} />} />
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/wishlist" element={<Wishlist />} />
