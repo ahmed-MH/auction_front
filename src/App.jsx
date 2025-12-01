@@ -17,10 +17,12 @@ import HotDeals from "./pages/HotDeals";
 import Wishlist from "./pages/Wishlist";
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isUserLoaded, setIsUserLoaded] = useState(false);
   useEffect(() => {
     // Récupère l'utilisateur depuis localStorage au chargement
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) setCurrentUser(user);
+    setIsUserLoaded(true);
   }, []);
   return (
     <Router>
@@ -28,8 +30,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/add-bid" element={<AddBid currentUser={currentUser} />} />
-        <Route path="/edit-bid" element={<EditBid currentUser={currentUser} />} />
+        <Route
+          path="/add-bid"
+          element={<AddBid currentUser={currentUser} isUserLoaded={isUserLoaded} />}
+        />        
+        <Route
+          path="/edit-bid"
+          element={<EditBid currentUser={currentUser} isUserLoaded={isUserLoaded} />}
+        />        
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/wishlist" element={<Wishlist />} />

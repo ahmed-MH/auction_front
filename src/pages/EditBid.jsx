@@ -5,7 +5,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Navigate } from "react-router-dom";
 
-const EditBid = ({ currentUser }) => {
+const EditBid = ({ currentUser, isUserLoaded }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [categories, setCategories] = useState([]);
@@ -22,6 +22,7 @@ const EditBid = ({ currentUser }) => {
   const [loading, setLoading] = useState(false);
 
   const product = location.state?.product;
+  
 
   // Charger les catégories
   useEffect(() => {
@@ -30,6 +31,7 @@ const EditBid = ({ currentUser }) => {
       .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
+  
 
   // Pré-remplir le formulaire
   useEffect(() => {
@@ -46,9 +48,14 @@ const EditBid = ({ currentUser }) => {
       setImages(product.imageUrls?.map(url => ({ url })) || []);
     }
   }, [product]);
-  if (!currentUser || currentUser.role !== "USER") {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!isUserLoaded) return <div>Chargement...</div>;
+
+  // ❌ User non connecté → redirection
+  if (!currentUser) return <Navigate to="/auth" replace />;
+
+  // ❌ Mauvais rôle → redirection
+  if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
+  
   // Gestion inputs
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

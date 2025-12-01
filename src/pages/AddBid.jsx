@@ -6,7 +6,7 @@ import Footer from "../components/Footer";
 import { Navigate } from "react-router-dom";
 
 
-const AddBid = ({ currentUser }) => {
+const AddBid = ({ currentUser, isUserLoaded }) => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
@@ -29,9 +29,13 @@ const AddBid = ({ currentUser }) => {
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
   
-  if (!currentUser || currentUser.role !== "USER") {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!isUserLoaded) return <div>Chargement...</div>;
+  
+    // ❌ User non connecté → redirection
+    if (!currentUser) return <Navigate to="/auth" replace />;
+  
+    // ❌ Mauvais rôle → redirection
+    if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
 
   // Gestion changement des inputs
   const handleChange = (e) => {
