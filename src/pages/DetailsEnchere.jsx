@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Phone, User,Pencil, Trash2 } from "lucide-react";
+import { Heart, Phone, User, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -102,6 +102,23 @@ const ProductDetails = () => {
       return;
     }
 
+    // ✅ Vérifier si l'utilisateur a assez de crédits
+    if (currentUser && currentUser.soldeCredit < bidAmount) {
+      const deficit = bidAmount - currentUser.soldeCredit;
+      const confirmBuy = window.confirm(
+        `⚠️ Solde insuffisant !\n\n` +
+        `Votre solde actuel : ${currentUser.soldeCredit} crédits\n` +
+        `Montant requis : ${bidAmount} crédits\n` +
+        `Il vous manque : ${deficit.toFixed(2)} crédits\n\n` +
+        `Voulez-vous acheter des crédits maintenant ?`
+      );
+
+      if (confirmBuy) {
+        navigate("/account"); // Redirect to account page to buy credits
+      }
+      return;
+    }
+
     setBidLoading(true);
 
     try {
@@ -131,12 +148,12 @@ const ProductDetails = () => {
       );
 
       setProduct(productRes.data);
-      
+
       fetchParticipations();
 
     } catch (err) {
       console.error("Erreur lors de l'enchère :", err);
-      
+
       if (err.response && err.response.data) {
         alert(`⚠️ Erreur : ${err.response.data}`);
       } else {
@@ -250,9 +267,8 @@ const ProductDetails = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(url)}
-                    className={`w-12 h-12 rounded-full border-2 overflow-hidden focus:outline-none ${
-                      selectedImage === url ? "border-orange-500" : "border-gray-300"
-                    }`}
+                    className={`w-12 h-12 rounded-full border-2 overflow-hidden focus:outline-none ${selectedImage === url ? "border-orange-500" : "border-gray-300"
+                      }`}
                   >
                     <img
                       src={url}
@@ -296,77 +312,77 @@ const ProductDetails = () => {
               {product.description}
             </p>
             <div className="flex items-center space-x-2">
-                {isOwner ? (
-                  <div className="mt-4 flex gap-2">
-                    {/* Modifier */}
-                    <button
-                      onClick={() => {
-                        navigate("/edit-bid", { state: { product } });
-                      }}
-                      title="Modifier l'enchère"
-                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+              {isOwner ? (
+                <div className="mt-4 flex gap-2">
+                  {/* Modifier */}
+                  <button
+                    onClick={() => {
+                      navigate("/edit-bid", { state: { product } });
+                    }}
+                    title="Modifier l'enchère"
+                    className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
 
-                    {/* Supprimer */}
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm("⚠️ Voulez-vous vraiment supprimer cette enchère ?")) return;
+                  {/* Supprimer */}
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm("⚠️ Voulez-vous vraiment supprimer cette enchère ?")) return;
 
-                        try {
-                          const token = localStorage.getItem("token");
+                      try {
+                        const token = localStorage.getItem("token");
 
-                          // Supprimer les images liées
-                          const imagesRes = await axios.get(
-                            `http://localhost:8080/api/images/encher/${product.id}`,
-                            { headers: { Authorization: `Bearer ${token}` } }
-                          );
-                          const images = imagesRes.data;
-                          for (const img of images) {
-                            await axios.delete(`http://localhost:8080/api/images/${img.id}`, {
-                              headers: { Authorization: `Bearer ${token}` },
-                            });
-                          }
-
-                          // Supprimer l'enchère
-                          await axios.delete(`http://localhost:8080/api/enchers/${product.id}`, {
+                        // Supprimer les images liées
+                        const imagesRes = await axios.get(
+                          `http://localhost:8080/api/images/encher/${product.id}`,
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        const images = imagesRes.data;
+                        for (const img of images) {
+                          await axios.delete(`http://localhost:8080/api/images/${img.id}`, {
                             headers: { Authorization: `Bearer ${token}` },
                           });
-
-                          alert("Enchère et images supprimées avec succès !");
-                          navigate("/products");
-                        } catch (err) {
-                          console.error("Erreur lors de la suppression :", err);
-                          alert("Une erreur est survenue lors de la suppression.");
                         }
-                      }}
-                      title="Supprimer l'enchère"
-                      className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition"
-                    >
-                      <Trash2 className="w-4 h-4" />
+
+                        // Supprimer l'enchère
+                        await axios.delete(`http://localhost:8080/api/enchers/${product.id}`, {
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+
+                        alert("Enchère et images supprimées avec succès !");
+                        navigate("/products");
+                      } catch (err) {
+                        console.error("Erreur lors de la suppression :", err);
+                        alert("Une erreur est survenue lors de la suppression.");
+                      }
+                    }}
+                    title="Supprimer l'enchère"
+                    className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={handleWishlist}
+                    className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </button>
+
+                  <Link to={`/contact/`}>
+                    <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
+                      <Phone className="w-4 h-4" />
                     </button>
-                  </div>
-                ) : (
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      onClick={handleWishlist}
-                      className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition"
-                    >
-                      <Heart className="w-4 h-4" />
-                    </button>
-
-                    <Link to={`/contact/`}>
-                      <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
-                        <Phone className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                )}
+                  </Link>
+                </div>
+              )}
 
 
-              </div><br />
-              
+            </div><br />
+
             {/* PRIX ACTUEL */}
             <div className="border-t pt-4">
               <div className="mb-4">
@@ -407,11 +423,10 @@ const ProductDetails = () => {
                       <button
                         onClick={handleBid}
                         disabled={bidLoading}
-                        className={`px-6 py-2 rounded text-white font-semibold transition ${
-                          bidLoading
+                        className={`px-6 py-2 rounded text-white font-semibold transition ${bidLoading
                             ? "bg-gray-400 cursor-not-allowed"
                             : "bg-orange-600 hover:bg-orange-700"
-                        }`}
+                          }`}
                       >
                         {bidLoading ? "En cours..." : "Enchérir"}
                       </button>
@@ -441,22 +456,20 @@ const ProductDetails = () => {
           <div className="flex space-x-2 border-b w-full">
             <button
               onClick={() => setActiveTab("description")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition ${
-                activeTab === "description"
+              className={`px-6 py-3 rounded-t-lg font-semibold transition ${activeTab === "description"
                   ? "bg-orange-500 text-white"
                   : "text-[#003847] hover:bg-gray-200"
-              }`}
+                }`}
             >
               Description
             </button>
 
             <button
               onClick={() => setActiveTab("similar")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition ${
-                activeTab === "similar"
+              className={`px-6 py-3 rounded-t-lg font-semibold transition ${activeTab === "similar"
                   ? "bg-orange-500 text-white"
                   : "text-[#003847] hover:bg-gray-200"
-              }`}
+                }`}
             >
               Enchères similaires
             </button>
@@ -508,11 +521,10 @@ const ProductDetails = () => {
               {participations.map((participation, index) => (
                 <div
                   key={participation.id}
-                  className={`flex items-center space-x-4 p-4 rounded-lg transition ${
-                    index === 0
+                  className={`flex items-center space-x-4 p-4 rounded-lg transition ${index === 0
                       ? "bg-orange-100 border-2 border-orange-400"
                       : "bg-gray-50 hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
                     <User className="w-8 h-8 text-gray-500" />
@@ -543,7 +555,7 @@ const ProductDetails = () => {
             </div>
           </div>
         )}
-        
+
       </main>
 
       <Footer />

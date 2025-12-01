@@ -2,16 +2,19 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Mail, Package, Gavel, LogOut, Settings } from "lucide-react";
+import { Mail, Package, Gavel, LogOut, Settings, CreditCard } from "lucide-react";
 
 import SettingsModal from "../components/SettingsModal";
+import BuyCreditsModal from "../components/BuyCreditsModal";
 
 const MyAccount = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ auctions: 0, bids: 0 });
     const [loading, setLoading] = useState(true);
+
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
 
     useEffect(() => {
         const initializeUser = async () => {
@@ -26,9 +29,9 @@ const MyAccount = () => {
 
                 const userData = JSON.parse(storedUser);
                 setUser(userData);
+
                 const fetchStats = async (userId, token) => {
                     try {
-
                         const [auctionsRes, bidsRes] = await Promise.all([
                             fetch(`http://localhost:8080/api/enchers/utilisateur/${userId}`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -50,16 +53,8 @@ const MyAccount = () => {
                         console.error("Erreur récupération stats :", error);
                     }
                 };
-                
-                // fetch real stats
-                await fetchStats(userData.id, token);
 
-                // TODO: Fetch actual stats from API
-                // const response = await fetch(`/api/users/${userData.id}/stats`, {
-                //     headers: { 'Authorization': `Bearer ${token}` }
-                // });
-                // const statsData = await response.json();
-                // setStats(statsData);
+                await fetchStats(userData.id, token);
 
             } catch (error) {
                 console.error("Failed to initialize user:", error);
@@ -80,8 +75,10 @@ const MyAccount = () => {
         navigate("/");
     };
 
-    const handleUserUpdated = (updatedUser) => {
-        setUser(updatedUser);
+    // ✅ Mis à jour du solde utilisateur après paiement
+    const handleCreditsUpdated = (updatedUser) => {
+        setUser(updatedUser); // Solde et autres infos utilisateur sont mises à jour
+        localStorage.setItem("user", JSON.stringify(updatedUser));
     };
 
     if (loading) {
@@ -108,30 +105,28 @@ const MyAccount = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Sidebar / Profile Card */}
+                    {/* Sidebar */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transform transition-all hover:-translate-y-1 duration-300">
                             <div className="bg-gradient-to-r from-[#014152] to-[#025a70] h-32 relative">
                                 <div className="absolute inset-0 bg-black/10"></div>
                             </div>
                             <div className="px-6 pb-8 relative">
-                                <div className="w-24 h-24 bg-white rounded-full border-4 border-white shadow-xl absolute -top-12 left-1/2 transform -translate-x-1/2 flex items-center justify-center text-4xl font-bold text-[#014152] z-10">
+                                <div className="w-24 h-24 bg-white rounded-full border-4 border-white shadow-xl mx-auto -mt-12 relative z-10 flex items-center justify-center text-4xl font-bold text-[#014152]">
                                     {user.nom ? user.nom.charAt(0).toUpperCase() : "U"}
                                 </div>
 
-                                <div className="mt-30 text-center">
+                                <div className="text-center mt-4">
                                     <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
-                                        {user.nom || "User Name"}
+                                        {user.nom}
                                     </h2>
-                                    <div className="flex items-center justify-center text-gray-500 mt-10 text-sm font-medium">
+                                    <div className="flex items-center justify-center text-gray-500 mt-2 text-sm font-medium">
                                         <Mail className="w-4 h-4 mr-2 text-orange-500" />
-                                        {user.email || "No email provided"}
+                                        {user.email}
                                     </div>
                                     <div className="mt-4">
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100">
-                                            {user.roles && user.roles.length > 0
-                                                ? user.roles.join(" • ")
-                                                : "User"}
+                                        <span className="inline-flex items-center px-4 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                                            User
                                         </span>
                                     </div>
                                 </div>
@@ -141,9 +136,18 @@ const MyAccount = () => {
                                         onClick={() => setIsSettingsOpen(true)}
                                         className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-gray-700 font-medium bg-gray-50 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 group"
                                     >
-                                        <Settings className="w-5 h-5 mr-3 text-gray-400 group-hover:text-orange-500 transition-colors" />
+                                        <Settings className="w-5 h-5 mr-3 text-gray-400 group-hover:text-orange-500" />
                                         Account Settings
                                     </button>
+
+                                    <button
+                                        onClick={() => setIsBuyCreditsOpen(true)}
+                                        className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-green-700 font-medium bg-green-50 hover:bg-green-100 transition-all duration-200 group"
+                                    >
+                                        <CreditCard className="w-5 h-5 mr-3 text-green-600 group-hover:text-green-800" />
+                                        Buy Credits ({user.soldeCredit} credits)
+                                    </button>
+
                                     <button
                                         onClick={handleLogout}
                                         className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-red-600 font-medium bg-red-50 hover:bg-red-100 transition-all duration-200"
@@ -156,10 +160,9 @@ const MyAccount = () => {
                         </div>
                     </div>
 
-                    {/* Main Content Area */}
+                    {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-
-                        {/* Stats Overview */}
+                        {/* Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center">
                                 <div className="p-3 bg-blue-50 text-blue-600 rounded-lg mr-4">
@@ -167,9 +170,7 @@ const MyAccount = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">My Auctions</p>
-                                    <h3 className="text-2xl font-bold text-gray-800">
-                                        {stats.auctions}
-                                    </h3>
+                                    <h3 className="text-2xl font-bold text-gray-800">{stats.auctions}</h3>
                                 </div>
                             </div>
 
@@ -179,14 +180,12 @@ const MyAccount = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">My Bids</p>
-                                    <h3 className="text-2xl font-bold text-gray-800">
-                                        {stats.bids}
-                                    </h3>
+                                    <h3 className="text-2xl font-bold text-gray-800">{stats.bids}</h3>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Recent Activity Section */}
+                        {/* Recent activity */}
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                             <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h3>
 
@@ -195,26 +194,28 @@ const MyAccount = () => {
                                     <Package className="w-6 h-6 text-gray-400" />
                                 </div>
                                 <p>No recent activity found.</p>
-                                <button
-                                    onClick={() => navigate('/products')}
-                                    className="mt-4 text-orange-600 font-medium hover:text-orange-700 transition-colors"
-                                >
-                                    Browse Products
-                                </button>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </main>
+
             <Footer />
 
+            {/* Modals */}
             <SettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
                 user={user}
-                onUserUpdated={handleUserUpdated}
+                onUserUpdated={handleCreditsUpdated} // Pour mettre à jour user global
                 onLogout={handleLogout}
+            />
+
+            <BuyCreditsModal
+                isOpen={isBuyCreditsOpen}
+                onClose={() => setIsBuyCreditsOpen(false)}
+                user={user}
+                onCreditsUpdated={handleCreditsUpdated} // ✅ Correct prop
             />
         </div>
     );
