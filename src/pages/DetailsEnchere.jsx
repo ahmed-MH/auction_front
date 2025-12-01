@@ -312,77 +312,84 @@ const ProductDetails = () => {
               {product.description}
             </p>
             <div className="flex items-center space-x-2">
-              {isOwner ? (
-                <div className="mt-4 flex gap-2">
-                  {/* Modifier */}
-                  <button
-                    onClick={() => {
-                      navigate("/edit-bid", { state: { product } });
-                    }}
-                    title="Modifier l'enchère"
-                    className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
+              {/* Afficher les boutons uniquement si l’enchère n’est pas terminée */}
+              {!isEnded && (
+                <>
+                  {isOwner ? (
+                    // ----- BOUTONS PROPRIÉTAIRE -----
+                    <div className="mt-4 flex gap-2">
 
-                  {/* Supprimer */}
-                  <button
-                    onClick={async () => {
-                      if (!window.confirm("⚠️ Voulez-vous vraiment supprimer cette enchère ?")) return;
+                      {/* Modifier */}
+                      <button
+                        onClick={() => navigate("/edit-bid", { state: { product } })}
+                        title="Modifier l'enchère"
+                        className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
 
-                      try {
-                        const token = localStorage.getItem("token");
+                      {/* Supprimer */}
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm("⚠️ Voulez-vous vraiment supprimer cette enchère ?")) return;
 
-                        // Supprimer les images liées
-                        const imagesRes = await axios.get(
-                          `http://localhost:8080/api/images/encher/${product.id}`,
-                          { headers: { Authorization: `Bearer ${token}` } }
-                        );
-                        const images = imagesRes.data;
-                        for (const img of images) {
-                          await axios.delete(`http://localhost:8080/api/images/${img.id}`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                        }
+                          try {
+                            const token = localStorage.getItem("token");
 
-                        // Supprimer l'enchère
-                        await axios.delete(`http://localhost:8080/api/enchers/${product.id}`, {
-                          headers: { Authorization: `Bearer ${token}` },
-                        });
+                            const imagesRes = await axios.get(
+                              `http://localhost:8080/api/images/encher/${product.id}`,
+                              { headers: { Authorization: `Bearer ${token}` } }
+                            );
 
-                        alert("Enchère et images supprimées avec succès !");
-                        navigate("/products");
-                      } catch (err) {
-                        console.error("Erreur lors de la suppression :", err);
-                        alert("Une erreur est survenue lors de la suppression.");
-                      }
-                    }}
-                    title="Supprimer l'enchère"
-                    className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={handleWishlist}
-                    className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition"
-                  >
-                    <Heart className="w-4 h-4" />
-                  </button>
+                            for (const img of imagesRes.data) {
+                              await axios.delete(`http://localhost:8080/api/images/${img.id}`, {
+                                headers: { Authorization: `Bearer ${token}` },
+                              });
+                            }
 
-                  <Link to={`/contact/`}>
-                    <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
-                      <Phone className="w-4 h-4" />
-                    </button>
-                  </Link>
-                </div>
+                            await axios.delete(`http://localhost:8080/api/enchers/${product.id}`, {
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+
+                            alert("Enchère supprimée avec succès !");
+                            navigate("/products");
+
+                          } catch (err) {
+                            console.error("Erreur suppression :", err);
+                            alert("Une erreur est survenue.");
+                          }
+                        }}
+                        title="Supprimer l'enchère"
+                        className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                    </div>
+
+                  ) : (
+                    // ----- BOUTONS VISITEURS -----
+                    <div className="mt-4 flex gap-2">
+                      {/* Wishlist */}
+                      <button
+                        onClick={handleWishlist}
+                        className="w-8 h-8 rounded-full bg-gray-200 hover:text-white text-gray-400 flex items-center justify-center hover:bg-[#FF6B39] transition"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </button>
+
+                      {/* Contact */}
+                      <Link to={`/contact/`}>
+                        <button className="w-8 h-8 rounded-full text-gray-400 bg-gray-200 flex items-center hover:text-white justify-center hover:bg-[#FF6B39] transition">
+                          <Phone className="w-4 h-4" />
+                        </button>
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
-
-
-            </div><br />
-
+            </div>
+            <br />
             {/* PRIX ACTUEL */}
             <div className="border-t pt-4">
               <div className="mb-4">
