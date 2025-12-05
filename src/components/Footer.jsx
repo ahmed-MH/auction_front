@@ -11,12 +11,11 @@ const categoriesData = [
 ];
 
 const serviceData = [
-  { label: "My Account", href: "/login" },
-  { label: "View Cart", href: "/" },
-  { label: "Wishlist", href: "/" },
+  { label: "My Account", href: "/account" },
+  { label: "Wishlist", href: "/wishlist" },
   { label: "Add Product", href: "/add-bid" },
   { label: "Categories", href: "/" },
-  { label: "Contact", href: "/" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const aboutUsData = [
