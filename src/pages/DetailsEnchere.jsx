@@ -155,7 +155,8 @@ const ProductDetails = () => {
 
   const now = new Date();
   const endDate = new Date(product.dateFin);
-  const isEnded = now > endDate;
+  // Prioritize backend status, but also check date for real-time responsiveness if backend hasn't updated yet
+  const isEnded = product.statut === 'TERMINEE' || now > endDate;
 
   const isOwner = currentUser && product.createurId === currentUser.id;
   const handleWishlist = () => {

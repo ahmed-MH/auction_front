@@ -11,7 +11,7 @@ import BuyCreditsModal from "../components/BuyCreditsModal";
 const MyAccount = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ auctions: 0, bids: 0, soldeCredit: 0, montantBloque: 0 });
+    const [stats, setStats] = useState({ auctions: 0, bids: 0, soldeCredit: 0, montantBloque: 0, activities: [] });
     const [loading, setLoading] = useState(true);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -49,11 +49,37 @@ const MyAccount = () => {
                         const bids = await bidsRes.json();
                         const profileStats = await profileStatsRes.json();
 
+                        // 1. Transformer les enchères créées
+                        const createdActivities = auctions.map(a => ({
+                            type: 'CREATION',
+                            id: a.id,
+                            title: a.nomProduit,
+                            amount: a.prixDepart,
+                            date: new Date(a.dateDebut),
+                            status: a.statut
+                        }));
+
+                        // 2. Transformer les participations
+                        const bidActivities = bids.map(b => ({
+                            type: 'BID',
+                            id: b.enchereId,
+                            title: b.nomProduit,
+                            amount: b.montant,
+                            date: new Date(b.dateParticipation),
+                            status: 'ACTIVE'
+                        }));
+
+                        // 3. Fusionner et trier (plus récent en premier)
+                        const allActivities = [...createdActivities, ...bidActivities]
+                            .sort((a, b) => b.date - a.date)
+                            .slice(0, 10); // Garder les 10 dernières
+
                         setStats({
                             auctions: auctions.length,
                             bids: bids.length,
                             soldeCredit: profileStats.soldeCredit,
-                            montantBloque: profileStats.montantBloque
+                            montantBloque: profileStats.montantBloque,
+                            activities: allActivities
                         });
 
                     } catch (error) {
@@ -232,14 +258,45 @@ const MyAccount = () => {
 
                         {/* Recent activity */}
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Recent Activity</h3>
 
-                            <div className="text-center py-10 text-gray-500">
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                                    <Package className="w-6 h-6 text-gray-400" />
+                            {stats.activities && stats.activities.length > 0 ? (
+                                <div className="space-y-4">
+                                    {stats.activities.map((activity, index) => (
+                                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-orange-50 transition-colors border border-gray-100">
+                                            <div className="flex items-center space-x-4">
+                                                <div className={`p-3 rounded-full ${activity.type === 'CREATION' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                    {activity.type === 'CREATION' ? <Package className="w-5 h-5" /> : <Gavel className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-800 font-medium">
+                                                        {activity.type === 'CREATION' ? 'You created an auction' : 'You placed a bid'}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 font-medium">{activity.title}</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {activity.date.toLocaleDateString()} at {activity.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`block font-bold ${activity.type === 'CREATION' ? 'text-blue-600' : 'text-orange-600'}`}>
+                                                    {activity.amount} DT
+                                                </span>
+                                                <span className="text-xs text-gray-400 uppercase tracking-wide">
+                                                    {activity.type === 'CREATION' ? 'Starting Price' : 'Bid Amount'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p>No recent activity found.</p>
-                            </div>
+                            ) : (
+                                <div className="text-center py-10 text-gray-500">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                                        <Package className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                    <p>No recent activity found.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
