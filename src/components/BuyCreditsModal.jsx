@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import API_BASE_URL from "../config";
 import { X } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -62,7 +63,7 @@ const CheckoutForm = ({ user, onClose, onCreditsUpdated }) => {
 
         try {
             // 1️⃣ Créer PaymentIntent côté backend
-            const res = await fetch("http://localhost:8080/api/payment/create-intent", {
+            const res = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -93,7 +94,7 @@ const CheckoutForm = ({ user, onClose, onCreditsUpdated }) => {
             }
 
             // 3️⃣ Confirmer le paiement côté backend pour créditer l'utilisateur
-            const confirmRes = await fetch("http://localhost:8080/api/payment/confirm", {
+            const confirmRes = await fetch(`${API_BASE_URL}/api/payment/confirm`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

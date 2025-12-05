@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate, useLocation } from "react-router-dom";
+import api from "../api/axios";
+import axios from "axios"; // Cloudinary needs raw axios
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 
 const EditBid = ({ currentUser, isUserLoaded }) => {
   const navigate = useNavigate();
@@ -22,16 +22,16 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
   const [loading, setLoading] = useState(false);
 
   const product = location.state?.product;
-  
+
 
   // Charger les catégories
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/categories")
+    api
+      .get("/api/categories")
       .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
-  
+
 
   // Pré-remplir le formulaire
   useEffect(() => {
@@ -55,7 +55,7 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
 
   // ❌ Mauvais rôle → redirection
   if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
-  
+
   // Gestion inputs
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -124,10 +124,9 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
         images: imageUrls.map(url => ({ url }))
       };
 
-      await axios.put(
-        `http://localhost:8080/api/enchers/${product.id}`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        `/api/encheres/${product.id}`,
+        payload
       );
 
       alert("Enchère mise à jour avec succès !");
@@ -266,9 +265,8 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
-              }`}
+              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+                }`}
             >
               {loading ? "Updating..." : "Mettre à jour"}
             </button>

@@ -2,7 +2,7 @@ import { useLocation, Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 
 const Products = () => {
   const location = useLocation();
@@ -21,9 +21,7 @@ const Products = () => {
     // Récupération des enchères depuis l'API
     const fetchProducts = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:8080/api/enchers", { headers });
+        const res = await api.get("/api/encheres");
         setProducts(res.data);
       } catch (err) {
         console.error("Erreur récupération des produits :", err);

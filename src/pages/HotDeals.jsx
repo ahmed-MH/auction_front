@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -12,9 +12,7 @@ const HotDeals = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const token = localStorage.getItem("token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const res = await axios.get("http://localhost:8080/api/encheres", { headers });
+                const res = await api.get("/api/encheres");
                 // Filter/Sort logic for "Hot Deals"
                 // For now, let's assume "Hot" means ending soon or randomly selected for demo
                 // We'll sort by dateFin if available, otherwise just take the first few

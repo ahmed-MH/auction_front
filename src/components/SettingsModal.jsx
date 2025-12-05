@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, User, Lock, Trash2, AlertTriangle, Save, Eye, EyeOff } from "lucide-react";
-import axios from "axios";
+import api from "../api/axios";
 
 const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
     const [activeTab, setActiveTab] = useState("profile");
@@ -22,13 +22,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
     const [showPassword, setShowPassword] = useState(false);
 
     // Headers for API calls
-    const getHeaders = () => {
-        const token = localStorage.getItem("token");
-        return {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        };
-    };
+
 
     // Handle Profile Update
     const handleUpdateProfile = async (e) => {
@@ -38,10 +32,9 @@ const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
 
         try {
             console.log("Sending profile update payload:", profileData);
-            const res = await axios.put(
-                "http://localhost:8080/api/profile/update",
-                profileData,
-                { headers: getHeaders() }
+            const res = await api.put(
+                "/api/profile/update",
+                profileData
             );
 
             // Update local storage and parent state
@@ -77,10 +70,9 @@ const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
             };
             console.log("Sending password update payload:", payload);
 
-            await axios.put(
-                "http://localhost:8080/api/profile/password",
-                payload,
-                { headers: getHeaders() }
+            await api.put(
+                "/api/profile/password",
+                payload
             );
 
             setMessage({ type: "success", text: "Password changed successfully!" });
@@ -105,9 +97,9 @@ const SettingsModal = ({ isOpen, onClose, user, onUserUpdated, onLogout }) => {
         setMessage({ type: "", text: "" });
 
         try {
-            await axios.delete(
-                "http://localhost:8080/api/profile/delete",
-                { headers: getHeaders() });
+            await api.delete(
+                "/api/profile/delete"
+            );
 
             // Suppression OK → Logout
             onLogout();

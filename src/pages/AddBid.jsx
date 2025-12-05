@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import api from "../api/axios"; // instance centralisée
+import axios from "axios"; // pour Cloudinary qui n'a pas besoin de l'intercepteur
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 
 const AddBid = ({ currentUser, isUserLoaded }) => {
@@ -19,23 +19,23 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
     dateFin: "",
     categorieId: ""
   });
-  
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/categories")
+    api
+      .get("/api/categories")
       .then(res => setCategories(res.data))
       .catch(err => console.error("Erreur chargement catégories :", err));
   }, []);
-  
+
   if (!isUserLoaded) return <div>Chargement...</div>;
-  
-    // ❌ User non connecté → redirection
-    if (!currentUser) return <Navigate to="/auth" replace />;
-  
-    // ❌ Mauvais rôle → redirection
-    if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
+
+  // ❌ User non connecté → redirection
+  if (!currentUser) return <Navigate to="/auth" replace />;
+
+  // ❌ Mauvais rôle → redirection
+  if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
 
   // Gestion changement des inputs
   const handleChange = (e) => {
@@ -130,12 +130,7 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
 
       console.log("Sending payload:", payload);
 
-      const res = await axios.post("http://localhost:8080/api/enchers", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      const res = await api.post("/api/encheres", payload);
 
       alert("Enchère créée avec succès !");
       console.log(res.data);

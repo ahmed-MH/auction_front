@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from 'axios';
+import api from "../api/axios";
 import Navbar from "./Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { Phone, Mail, MapPin, User, LogOut, ChevronDown, ChevronUp , ShoppingCart, Heart} from "lucide-react";
+import { Phone, Mail, MapPin, User, LogOut, ChevronDown, ChevronUp, ShoppingCart, Heart } from "lucide-react";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("user"));
 
   useEffect(() => {
-    axios.get("http://localhost:8080/api/categories")
+    api.get("/api/categories")
       .then(res => {
         setCategories(res.data);
       })
@@ -20,8 +20,13 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    setIsLoggedIn(null);
+    if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      setIsLoggedIn(null);
+      window.location.href = "/";
+    }
   };
 
   const handleSearch = () => {

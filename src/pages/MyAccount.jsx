@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import API_BASE_URL from "../config";
 import Footer from "../components/Footer";
 import { Mail, Package, Gavel, LogOut, Settings, CreditCard } from "lucide-react";
 
@@ -10,7 +11,7 @@ import BuyCreditsModal from "../components/BuyCreditsModal";
 const MyAccount = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ auctions: 0, bids: 0 });
+    const [stats, setStats] = useState({ auctions: 0, bids: 0, soldeCredit: 0, montantBloque: 0 });
     const [loading, setLoading] = useState(true);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -32,21 +33,27 @@ const MyAccount = () => {
 
                 const fetchStats = async (userId, token) => {
                     try {
-                        const [auctionsRes, bidsRes] = await Promise.all([
-                            fetch(`http://localhost:8080/api/enchers/utilisateur/${userId}`, {
+                        const [auctionsRes, bidsRes, profileStatsRes] = await Promise.all([
+                            fetch(`${API_BASE_URL}/api/encheres/utilisateur/${userId}`, {
                                 headers: { Authorization: `Bearer ${token}` }
                             }),
-                            fetch(`http://localhost:8080/api/participations/utilisateur/${userId}`, {
+                            fetch(`${API_BASE_URL}/api/participations/utilisateur/${userId}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }),
+                            fetch(`${API_BASE_URL}/api/profile/stats`, {
                                 headers: { Authorization: `Bearer ${token}` }
                             })
                         ]);
 
                         const auctions = await auctionsRes.json();
                         const bids = await bidsRes.json();
+                        const profileStats = await profileStatsRes.json();
 
                         setStats({
                             auctions: auctions.length,
-                            bids: bids.length
+                            bids: bids.length,
+                            soldeCredit: profileStats.soldeCredit,
+                            montantBloque: profileStats.montantBloque
                         });
 
                     } catch (error) {
@@ -69,10 +76,13 @@ const MyAccount = () => {
     }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        navigate("/");
+        if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            localStorage.removeItem("userId");
+            // Force refresh to clear any state/cache
+            window.location.href = "/";
+        }
     };
 
     // ✅ Mis à jour du solde utilisateur après paiement
@@ -145,7 +155,7 @@ const MyAccount = () => {
                                         className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-green-700 font-medium bg-green-50 hover:bg-green-100 transition-all duration-200 group"
                                     >
                                         <CreditCard className="w-5 h-5 mr-3 text-green-600 group-hover:text-green-800" />
-                                        Buy Credits ({user.soldeCredit} credits)
+                                        Buy Credits
                                     </button>
 
                                     <button
@@ -178,9 +188,44 @@ const MyAccount = () => {
                                 <div className="p-3 bg-orange-50 text-orange-600 rounded-lg mr-4">
                                     <Gavel className="w-6 h-6" />
                                 </div>
+
+
                                 <div>
                                     <p className="text-sm text-gray-500">My Bids</p>
                                     <h3 className="text-2xl font-bold text-gray-800">{stats.bids}</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Credits Info */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                                <CreditCard className="w-5 h-5 mr-2 text-gray-500" />
+                                My Credits
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-5 rounded-xl bg-green-50 border border-green-100">
+                                    <p className="text-sm font-medium text-green-700 uppercase tracking-wider mb-1">
+                                        Available Credit
+                                    </p>
+                                    <p className="text-3xl font-extrabold text-green-800">
+                                        {stats.soldeCredit} <span className="text-lg font-normal">DT</span>
+                                    </p>
+                                    <p className="text-xs text-green-600 mt-2">
+                                        Ready to use for bids
+                                    </p>
+                                </div>
+
+                                <div className="p-5 rounded-xl bg-red-50 border border-red-100">
+                                    <p className="text-sm font-medium text-red-700 uppercase tracking-wider mb-1">
+                                        Blocked Credit
+                                    </p>
+                                    <p className="text-3xl font-extrabold text-red-800">
+                                        {stats.montantBloque} <span className="text-lg font-normal">DT</span>
+                                    </p>
+                                    <p className="text-xs text-red-600 mt-2">
+                                        Reserved in active bids
+                                    </p>
                                 </div>
                             </div>
                         </div>

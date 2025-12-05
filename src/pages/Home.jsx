@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from "../api/axios";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { AuctionCard } from '../components/ProductCard';
@@ -13,9 +13,7 @@ const Home = () => {
   useEffect(() => {
     const fetchAuctions = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:8080/api/enchers", { headers });
+        const res = await api.get("/api/encheres");
         const allAuctions = res.data;
 
         // Filter auctions

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import { Heart, Phone, User, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import { AuctionCard } from "../components/ProductCard";
@@ -30,7 +30,7 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:8080/api/enchers/${id}`);
+        const res = await api.get(`/api/encheres/${id}`);
         setProduct(res.data);
 
         setSelectedImage(
@@ -57,13 +57,8 @@ const ProductDetails = () => {
 
   const fetchParticipations = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/participations/enchere/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+      const res = await api.get(
+        `/api/participations/enchere/${id}`
       );
 
       const sortedParticipations = res.data.sort((a, b) => b.montant - a.montant);
@@ -78,7 +73,7 @@ const ProductDetails = () => {
     if (!categoryId) return;
 
     try {
-      const res = await axios.get("http://localhost:8080/api/enchers/categorie/" + categoryId);
+      const res = await api.get(`/api/encheres/categorie/` + categoryId);
 
       // Exclure le produit actuel
       const filtered = res.data.filter((p) => p.id !== currentProductId);
@@ -123,14 +118,9 @@ const ProductDetails = () => {
 
     try {
       // Appel API pour ajouter la participation
-      await axios.post(
-        `http://localhost:8080/api/participations/enchere/${id}/utilisateur/${currentUser.id}?montant=${bidAmount}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+      await api.post(
+        `/api/participations/enchere/${id}/utilisateur/${currentUser.id}?montant=${bidAmount}`,
+        {}
       );
 
 
@@ -138,13 +128,8 @@ const ProductDetails = () => {
       setUserPrice("");
 
       // Recharger le produit et les participations
-      const productRes = await axios.get(
-        `http://localhost:8080/api/enchers/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+      const productRes = await api.get(
+        `/api/encheres/${id}`
       );
 
       setProduct(productRes.data);
@@ -336,20 +321,15 @@ const ProductDetails = () => {
                           try {
                             const token = localStorage.getItem("token");
 
-                            const imagesRes = await axios.get(
-                              `http://localhost:8080/api/images/encher/${product.id}`,
-                              { headers: { Authorization: `Bearer ${token}` } }
+                            const imagesRes = await api.get(
+                              `/api/images/enchere/${product.id}`
                             );
 
                             for (const img of imagesRes.data) {
-                              await axios.delete(`http://localhost:8080/api/images/${img.id}`, {
-                                headers: { Authorization: `Bearer ${token}` },
-                              });
+                              await api.delete(`/api/images/${img.id}`);
                             }
 
-                            await axios.delete(`http://localhost:8080/api/enchers/${product.id}`, {
-                              headers: { Authorization: `Bearer ${token}` },
-                            });
+                            await api.delete(`/api/encheres/${product.id}`);
 
                             alert("Enchère supprimée avec succès !");
                             navigate("/products");
@@ -431,8 +411,8 @@ const ProductDetails = () => {
                         onClick={handleBid}
                         disabled={bidLoading}
                         className={`px-6 py-2 rounded text-white font-semibold transition ${bidLoading
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-orange-600 hover:bg-orange-700"
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-orange-600 hover:bg-orange-700"
                           }`}
                       >
                         {bidLoading ? "En cours..." : "Enchérir"}
@@ -464,8 +444,8 @@ const ProductDetails = () => {
             <button
               onClick={() => setActiveTab("description")}
               className={`px-6 py-3 rounded-t-lg font-semibold transition ${activeTab === "description"
-                  ? "bg-orange-500 text-white"
-                  : "text-[#003847] hover:bg-gray-200"
+                ? "bg-orange-500 text-white"
+                : "text-[#003847] hover:bg-gray-200"
                 }`}
             >
               Description
@@ -474,8 +454,8 @@ const ProductDetails = () => {
             <button
               onClick={() => setActiveTab("similar")}
               className={`px-6 py-3 rounded-t-lg font-semibold transition ${activeTab === "similar"
-                  ? "bg-orange-500 text-white"
-                  : "text-[#003847] hover:bg-gray-200"
+                ? "bg-orange-500 text-white"
+                : "text-[#003847] hover:bg-gray-200"
                 }`}
             >
               Enchères similaires
@@ -529,8 +509,8 @@ const ProductDetails = () => {
                 <div
                   key={participation.id}
                   className={`flex items-center space-x-4 p-4 rounded-lg transition ${index === 0
-                      ? "bg-orange-100 border-2 border-orange-400"
-                      : "bg-gray-50 hover:bg-gray-100"
+                    ? "bg-orange-100 border-2 border-orange-400"
+                    : "bg-gray-50 hover:bg-gray-100"
                     }`}
                 >
                   <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">

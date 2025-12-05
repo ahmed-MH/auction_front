@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from "../api/axios";
 import { NavLink } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -8,7 +8,7 @@ const Navbar = () => {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:8080/api/categories")
+    api.get("/api/categories")
       .then(res => {
         setCategories(res.data);
       })
@@ -18,7 +18,7 @@ const Navbar = () => {
   const links = [
     { name: 'Home', path: '/' },
     { name: 'Hot Deals', path: '/hot-deals' },
-    { name: 'Categories', path: '/categories', dropdown: categories},
+    { name: 'Categories', path: '/categories', dropdown: categories },
     { name: 'Products', path: '/products' },
     { name: 'Contact', path: '/contact' },
   ];
@@ -62,8 +62,7 @@ const Navbar = () => {
                 key={link.name}
                 to={link.path}
                 className={({ isActive }) =>
-                  `relative px-2 py-1 text-black hover:text-orange-500 transition-colors ${
-                    isActive ? 'font-semibold' : ''
+                  `relative px-2 py-1 text-black hover:text-orange-500 transition-colors ${isActive ? 'font-semibold' : ''
                   }`
                 }
               >
