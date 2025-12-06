@@ -1,73 +1,124 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/axios";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { nom, email, password } = formData;
-
-    if (!email || !password || (!isLogin && !nom)) {
-      setError("Tous les champs obligatoires doivent être remplis");
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-
-    try {
-      const url = isLogin
-        ? "/api/auth/authenticate"
-        : "/api/auth/register";
-
-      const body = isLogin
-        ? { email, password }
-        : { nom, email, password, roles: ["USER"] };
-
-      const response = await api.post(url, body);
-      const data = response.data;
-
-      if (isLogin) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.id);
-        localStorage.setItem("user", JSON.stringify(data));
-
-        console.log("Utilisateur connecté !");
-        navigate("/");
-      } else {
-        alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-        console.log("Nouvel utilisateur créé");
-        setIsLogin(true);
-        setFormData({ nom: "", email: "", password: "" });
+    const [isLogin, setIsLogin] = useState(true);
+    const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
+  
+    const handleChange = (e) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+  
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      const { nom, email, password } = formData;
+  
+      if (!email || !password || (!isLogin && !nom)) {
+        setError("Tous les champs obligatoires doivent être remplis");
+        return;
       }
-    } catch (err) {
-      console.error("Erreur Auth:", err);
-      const data = err.response?.data;
-      const errMsg = data?.message || "Erreur serveur ou identifiants incorrects";
-
-      if (data?.details) {
-        const details = Object.values(data.details).join(", ");
-        setError(`${errMsg}: ${details}`);
-      } else {
-        setError(errMsg);
+  
+      setError("");
+  
+      try {
+        const url = isLogin
+          ? "http://localhost:8080/api/auth/authenticate"
+          : "http://localhost:8080/api/auth/register";
+  
+        const body = isLogin
+          ? { email, password }
+          : { nom, email, password, roles: ["USER"] };
+  
+        console.log("📤 Envoi requête:", { url, body });
+  
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+  
+        // Toujours lire la réponse JSON
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { message: await response.text() };
+        }
+  
+        console.log("📥 Réponse complète:", data);
+        console.log("📥 Status:", response.status);
+  
+        if (!response.ok) {
+          const errMsg = data?.message || "Erreur serveur";
+          if (data?.details) {
+            const details = Object.values(data.details).join(", ");
+            setError(`${errMsg}: ${details}`);
+          } else {
+            setError(errMsg);
+          }
+          console.error("❌ Erreur:", data);
+          return;
+        }
+  
+        if (isLogin) {
+          // ✅ LOGIN - Essayer toutes les variantes possibles
+          const token = data.accessToken || data.token || data.jwtToken || data.jwt;
+          const userId = data.id || data.userId || data.user_id;
+          const userName = data.nom || data.name || data.username || data.fullName;
+          const userEmail = data.email;
+          const userRole = data.role || (data.roles && data.roles[0]) || "USER";
+  
+          console.log("🔍 Extraction des données:");
+          console.log("  - Token:", token);
+          console.log("  - Role:", userRole);
+          console.log("  - User ID:", userId);
+          console.log("  - User Name:", userName);
+  
+          if (!token) {
+            setError("❌ Token manquant dans la réponse du serveur");
+            console.error("Structure reçue:", Object.keys(data));
+            return;
+          }
+  
+          // Sauvegarder dans localStorage
+          localStorage.setItem("jwtToken", token);
+          localStorage.setItem("userId", userId);
+          localStorage.setItem("userName", userName);
+          localStorage.setItem("userEmail", userEmail);
+          localStorage.setItem("userRole", userRole);
+          localStorage.setItem("user", JSON.stringify(data));
+      
+          console.log("✅ Connexion réussie!");
+          console.log("💾 localStorage:", {
+            jwtToken: localStorage.getItem('jwtToken'),
+            userRole: localStorage.getItem('userRole')
+          });
+      
+          // Redirection selon le rôle
+          if (userRole === "ADMIN") {
+            console.log("➡️ Redirection vers /admindashboard");
+            navigate("/admindashboard");
+          } else {
+            console.log("➡️ Redirection vers /");
+            navigate("/");
+          }
+        } else {
+          // ✅ SIGNUP - Inscription réussie
+          alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
+          console.log("✅ Nouvel utilisateur créé:", data);
+          setIsLogin(true);
+          setFormData({ nom: "", email: "", password: "" });
+        }
+      } catch (err) {
+        setError(err.message || "Erreur réseau");
+        console.error("❌ Erreur réseau:", err);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    };
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,10 +156,9 @@ const Auth = () => {
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button
                   type="submit"
-                  disabled={loading}
-                  className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700"}`}
+                  className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
                 >
-                  {loading ? "Connexion..." : "Sign in"}
+                  Sign in
                 </button>
               </form>
             </>
@@ -152,10 +202,9 @@ const Auth = () => {
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button
                   type="submit"
-                  disabled={loading}
-                  className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700"}`}
+                  className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
                 >
-                  {loading ? "Chargement..." : "Register"}
+                  Register
                 </button>
               </form>
             </>
@@ -163,7 +212,11 @@ const Auth = () => {
 
           <div className="text-center mt-6">
             <button
-              onClick={() => { setIsLogin(!isLogin); setError(""); }}
+              onClick={() => { 
+                setIsLogin(!isLogin); 
+                setError(""); 
+                setFormData({ nom: "", email: "", password: "" });
+              }}
               className="text-orange-600 hover:text-orange-800 font-medium"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
