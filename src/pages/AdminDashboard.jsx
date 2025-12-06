@@ -105,16 +105,7 @@ export default function AdminDashboard() {
  } catch (err) { setError(err.message); } finally { setLoading(false); }
  };
 
- const handleDeleteCategory = async (id) => {
- if (!window.confirm('Supprimer ?')) return;
- try {
- setLoading(true); setError(null);
- const res = await fetch(`${API_BASE_URL}/categories/${id}`, { method: 'DELETE', headers: getHeaders() });
- if (res.status === 401 || res.status === 403) { handleLogout(); return; }
- if (!res.ok) throw new Error('Erreur suppression');
- await fetchCategories(); alert('Supprimé !');
- } catch (err) { setError(err.message); } finally { setLoading(false); }
- };
+
 
  const toggleUserStatus = async (id, curr) => {
  try {
