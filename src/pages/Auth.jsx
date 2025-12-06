@@ -85,6 +85,7 @@ const Auth = () => {
           }
   
           // Sauvegarder dans localStorage
+          localStorage.setItem("token", token); // ✅ Sauvegarder aussi sous "token" pour cohérence avec axios.js
           localStorage.setItem("jwtToken", token);
           localStorage.setItem("userId", userId);
           localStorage.setItem("userName", userName);

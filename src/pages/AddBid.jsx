@@ -31,11 +31,20 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
 
   if (!isUserLoaded) return <div>Chargement...</div>;
 
+  // Vérifier l'authentification directement depuis localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
+  const userRole = localStorage.getItem("userRole") || user?.role;
+  
   // ❌ User non connecté → redirection
-  if (!currentUser) return <Navigate to="/auth" replace />;
-
-  // ❌ Mauvais rôle → redirection
-  if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
+  if (!user || !token) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  // ❌ Mauvais rôle → redirection (permettre USER uniquement)
+  if (userRole !== "USER" && user?.role !== "USER") {
+    return <Navigate to="/auth" replace />;
+  }
 
   // Gestion changement des inputs
   const handleChange = (e) => {
@@ -84,10 +93,11 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
 
     // Récupération de l'utilisateur connecté
     const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token"); // Get token
+    const token = localStorage.getItem("token") || localStorage.getItem("jwtToken"); // Get token (essayer les deux clés)
 
     if (!userId || !token) {
       alert("Vous devez être connecté pour ajouter une enchère.");
+      navigate("/auth");
       return;
     }
 
