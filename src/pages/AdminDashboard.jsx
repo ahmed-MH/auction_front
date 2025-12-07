@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   BarChart3, Users, Package, DollarSign, Tag, Plus, Edit2, X, Search,
   Lock, Unlock, RefreshCw, AlertCircle, LogOut, TrendingUp, Award,
-  Activity, Download, Gavel, Play, CheckCircle, Eye, Bell, Trash2
+  Activity, Download, Gavel, Play, CheckCircle, Eye, Bell, Trash2,
+  MessageSquare, Mail
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -16,7 +17,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   // ===========================================================================
-  // 1. STATE MANAGEMENT & LOGIQUE MÉTIER
+  // 1. STATE & LOGIQUE
   // ===========================================================================
   
   const [activeTab, setActiveTab] = useState('stats');
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
   const [encheres, setEncheres] = useState([]);
+  const [messages, setMessages] = useState([]); 
   const [stats, setStats] = useState({ 
     totalUsers: 0, totalProducts: 0, totalRevenue: 0, creditsPurchased: 0 
   });
@@ -45,21 +47,21 @@ export default function AdminDashboard() {
   const [categoryName, setCategoryName] = useState('');
   const [enchereFilter, setEnchereFilter] = useState('all');
 
-  // Refs pour le Polling (Détection de changements)
+  // Refs
   const prevUsersRef = useRef([]);
   const prevEncheresRef = useRef([]);
   const isFirstLoad = useRef(true);
 
-  // Authentification
+  // Auth
   const getAuthToken = () => localStorage.getItem('token');
   const getHeaders = () => ({ 
     'Content-Type': 'application/json', 
     'Authorization': `Bearer ${getAuthToken()}` 
   });
   const userName = localStorage.getItem('userName') || 'Admin';
-  const currentAdminId = localStorage.getItem('userId') || JSON.parse(localStorage.getItem('user') || '{}').id;
+  const currentAdminId = localStorage.getItem('userId');
 
-  // --- GESTION DES NOTIFICATIONS (PERSISTANTES) ---
+  // --- NOTIFICATIONS ---
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem('adminNotifications');
     return saved ? JSON.parse(saved) : [];
@@ -70,41 +72,26 @@ export default function AdminDashboard() {
   }, [notifications]);
 
   const addNotification = (type, message) => {
-    const id = Date.now();
-    setNotifications(prev => {
-      const updated = [{ id, type, message, timestamp: new Date() }, ...prev].slice(0, 50);
-      return updated;
-    });
+    setNotifications(prev => [{ id: Date.now(), type, message, timestamp: new Date() }, ...prev].slice(0, 50));
   };
+  const removeNotification = (id) => setNotifications(prev => prev.filter(n => n.id !== id));
 
-  const removeNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  // --- INITIALISATION & POLLING ---
+  // --- INITIALISATION ---
   useEffect(() => {
     const token = getAuthToken();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = user.role || (user.roles && user.roles[0]) || '';
-    
     if (!token) { window.location.href = '/auth'; return; }
-    if (role !== 'ADMIN') { alert('Accès refusé'); window.location.href = '/'; return; }
-
-    // Chargement initial
     loadDashboardData();
-
-    // Polling toutes les 15 secondes
-    const interval = setInterval(() => {
-      checkForNewActivities();
-    }, 15000); 
-
+    const interval = setInterval(() => checkForNewActivities(), 15000); 
     return () => clearInterval(interval);
   }, []);
 
-  // --- LOGIQUE DE DÉTECTION (POLLING) ---
+  useEffect(() => {
+    if(activeTab === 'messages') fetchMessages();
+  }, [activeTab]);
+
+  // --- POLLING INTELLIGENT ---
   const checkForNewActivities = async () => {
     try {
-      // 1. Users (Crédits)
       const usersRes = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
       if (usersRes.ok) {
         const currentUsers = await usersRes.json();
@@ -112,19 +99,16 @@ export default function AdminDashboard() {
           currentUsers.forEach(curr => {
             const prev = prevUsersRef.current.find(p => p.id === curr.id);
             if (prev && curr.soldeCredit > prev.soldeCredit) {
-              const diff = curr.soldeCredit - prev.soldeCredit;
-              addNotification('success', `💰 ${curr.nom} a acheté ${diff} crédits !`);
+              addNotification('success', `💰 ${curr.nom} a acheté ${curr.soldeCredit - prev.soldeCredit} crédits !`);
             }
           });
         }
         prevUsersRef.current = currentUsers;
       }
-
-      // 2. Enchères (Nouveautés, Offres, Victoires)
+      
       const encheresRes = await fetch(`${API_BASE_URL}/encheres`, { headers: getHeaders() });
       if (encheresRes.ok) {
         const currentEncheresData = await encheresRes.json();
-        // Enrichissement pour avoir le montant actuel réel
         const enrichedCurrent = await Promise.all(currentEncheresData.map(async (e) => {
             try {
                const maxRes = await fetch(`${API_BASE_URL}/participations/enchere/${e.id}/montant-max`, { headers: getHeaders() });
@@ -134,50 +118,57 @@ export default function AdminDashboard() {
         }));
 
         if (!isFirstLoad.current) {
-          // A. Nouveaux produits
           const newProducts = enrichedCurrent.filter(curr => !prevEncheresRef.current.find(prev => prev.id === curr.id));
           newProducts.forEach(p => addNotification('info', `📦 Nouveau produit : "${p.nomProduit}"`));
 
-          // B. Mises à jour
           enrichedCurrent.forEach(curr => {
             const prev = prevEncheresRef.current.find(p => p.id === curr.id);
             if (prev) {
-               // Nouvelle offre
-               if (curr.montantActuel > prev.montantActuel) {
-                  addNotification('warning', `🔨 Nouvelle enchère sur "${curr.nomProduit}" à ${curr.montantActuel} DT`);
-               }
-               // Victoire
+               if (curr.montantActuel > prev.montantActuel) addNotification('warning', `🔨 Nouvelle enchère sur "${curr.nomProduit}"`);
                const wasActive = new Date(prev.dateFin) > new Date();
                const isNowFinished = new Date(curr.dateFin) <= new Date();
-               if (wasActive && isNowFinished) {
-                  addNotification('success', `🏆 Enchère terminée : "${curr.nomProduit}" !`);
-               }
+               if (wasActive && isNowFinished) addNotification('success', `🏆 Enchère terminée : "${curr.nomProduit}" !`);
             }
           });
         }
         prevEncheresRef.current = enrichedCurrent;
         if (isFirstLoad.current) isFirstLoad.current = false;
       }
-    } catch (e) { console.error("Erreur polling", e); }
+    } catch (e) { console.error("Polling error", e); }
   };
 
   const loadDashboardData = () => {
     fetchCategories();
     fetchStatsAndUsers(); 
     fetchEncheresAndCharts();
+    fetchMessages();
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/auth';
-  };
+  const handleLogout = () => { localStorage.clear(); window.location.href = '/auth'; };
 
-  // --- API FETCH FUNCTIONS ---
+  // --- API ---
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/categories`, { headers: getHeaders() });
       if (res.ok) setCategories(await res.json());
     } catch (e) { console.error(e); }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/messages`, { headers: getHeaders() });
+      if (res.ok) setMessages(await res.json());
+    } catch (e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const deleteMessage = async (id) => {
+    if(!window.confirm("Supprimer ?")) return;
+    try {
+        await fetch(`${API_BASE_URL}/messages/${id}`, { method: 'DELETE', headers: getHeaders() });
+        fetchMessages();
+        addNotification('success', 'Message supprimé');
+    } catch(e) { alert("Erreur"); }
   };
 
   const fetchStatsAndUsers = async () => {
@@ -186,8 +177,6 @@ export default function AdminDashboard() {
       const usersRes = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
       if (!usersRes.ok) throw new Error("Erreur users");
       const usersData = await usersRes.json();
-      
-      // Init ref for polling
       if(prevUsersRef.current.length === 0) prevUsersRef.current = usersData;
 
       let globalRevenue = 0;
@@ -200,12 +189,9 @@ export default function AdminDashboard() {
           const prodRes = await fetch(`${API_BASE_URL}/encheres/utilisateur/${u.id}`, { headers: getHeaders() });
           const products = prodRes.ok ? await prodRes.json() : [];
           totalEncheresCount += products.length;
-
-          // Calcul gain (simplifié)
           const wins = participations.filter(p => p.montant > 0); 
           const totalGains = wins.reduce((acc, curr) => acc + curr.montant, 0);
           globalRevenue += totalGains;
-
           return { ...u, encheresGagnees: wins.length, totalGains, encheresParticipees: participations.length, encheresAjoutees: products.length };
         } catch { return { ...u, encheresGagnees: 0, totalGains: 0, encheresParticipees: 0, encheresAjoutees: 0 }; }
       }));
@@ -217,12 +203,24 @@ export default function AdminDashboard() {
     } catch (err) { setError("Erreur stats"); } finally { setLoading(false); }
   };
 
+  // --- FONCTION GRAPHIQUE ROBUSTE ---
   const fetchEncheresAndCharts = async () => {
+    const chartMap = new Map();
+    const today = new Date();
+    // 1. Initialiser les 7 derniers jours (même vides)
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+      chartMap.set(key, { date: label, encheres: 0, participants: 0, revenus: 0 });
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/encheres`, { headers: getHeaders() });
       if (!res.ok) throw new Error("Erreur enchères");
+      
       const data = await res.json();
-
       const enrichedEncheres = await Promise.all(data.map(async (e) => {
         try {
           const partRes = await fetch(`${API_BASE_URL}/participations/enchere/${e.id}`, { headers: getHeaders() });
@@ -232,115 +230,52 @@ export default function AdminDashboard() {
           return { ...e, nombreParticipants: participations.length, montantActuel: montantMax || e.prixDepart, participations };
         } catch { return { ...e, nombreParticipants: 0, montantActuel: e.prixDepart, participations: [] }; }
       }));
-
       setEncheres(enrichedEncheres);
       if(prevEncheresRef.current.length === 0) prevEncheresRef.current = enrichedEncheres;
 
-      // Calcul Graphiques (7 derniers jours)
-      const chartMap = new Map();
-      const today = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(today.getDate() - i);
-        const key = d.toISOString().split('T')[0];
-        const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
-        chartMap.set(key, { date: label, encheres: 0, participants: 0, revenus: 0 });
-      }
-
+      // 2. Remplir avec données
       enrichedEncheres.forEach(enchere => {
         if (enchere.dateDebut) {
           const dateKey = new Date(enchere.dateDebut).toISOString().split('T')[0];
           if (chartMap.has(dateKey)) chartMap.get(dateKey).encheres += 1;
         }
-        if (enchere.participations) {
+        if (enchere.participations && Array.isArray(enchere.participations)) {
           enchere.participations.forEach(p => {
             if (p.dateParticipation) {
               const datePartKey = new Date(p.dateParticipation).toISOString().split('T')[0];
               if (chartMap.has(datePartKey)) {
                 const stat = chartMap.get(datePartKey);
                 stat.participants += 1;
-                stat.revenus += p.montant;
+                stat.revenus += (Number(p.montant) || 0);
               }
             }
           });
         }
       });
-      setChartData(Array.from(chartMap.values()));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Erreur chart", err); } 
+    finally { setChartData(Array.from(chartMap.values())); }
   };
 
-  // --- HANDLERS ACTIONS ---
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'stats') { fetchStatsAndUsers(); fetchEncheresAndCharts(); }
-    else if (tab === 'categories') fetchCategories();
-    else if (tab === 'users') fetchStatsAndUsers();
-    else if (tab === 'encheres') fetchEncheresAndCharts();
+  // --- HANDLERS ---
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'stats') { fetchStatsAndUsers(); fetchEncheresAndCharts(); }
+    else if (tabId === 'categories') fetchCategories();
+    else if (tabId === 'users') fetchStatsAndUsers();
+    else if (tabId === 'encheres') fetchEncheresAndCharts();
+    else if (tabId === 'messages') fetchMessages();
   };
 
-  const handleAddCategory = async () => {
-    if (!categoryName.trim()) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/categories`, {
-        method: 'POST', headers: getHeaders(), body: JSON.stringify({ libelleCategorie: categoryName.trim(), description: "" })
-      });
-      if (!res.ok) throw new Error('Erreur');
-      await fetchCategories(); setShowModal(false); setCategoryName('');
-      addNotification('success', 'Catégorie ajoutée !');
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
-  };
+  const handleAddCategory = async () => { if (!categoryName.trim()) return; try { setLoading(true); const res = await fetch(`${API_BASE_URL}/categories`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ libelleCategorie: categoryName.trim(), description: "" }) }); if (!res.ok) throw new Error('Erreur ajout'); await fetchCategories(); setShowModal(false); setCategoryName(''); addNotification('success', 'Catégorie ajoutée !'); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  const handleEditCategory = async () => { if (!categoryName.trim()) return; try { setLoading(true); const res = await fetch(`${API_BASE_URL}/categories/${editingItem.id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ libelleCategorie: categoryName.trim(), description: editingItem.description || "" }) }); if (!res.ok) throw new Error('Erreur modif'); await fetchCategories(); setShowModal(false); setEditingItem(null); setCategoryName(''); addNotification('success', 'Catégorie modifiée !'); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  const toggleUserStatus = async (id, curr) => { try { setLoading(true); const res = await fetch(`${API_BASE_URL}/users/${id}/status`, { method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ etatCompte: !curr }) }); if (!res.ok) throw new Error('Erreur'); await fetchStatsAndUsers(); addNotification('success', `Utilisateur ${!curr ? 'activé' : 'bloqué'} !`); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  const deleteEnchere = async (id) => { if (!window.confirm('Supprimer ?')) return; try { setLoading(true); const res = await fetch(`${API_BASE_URL}/encheres/${id}`, { method: 'DELETE', headers: getHeaders() }); if (!res.ok) throw new Error('Erreur'); await fetchEncheresAndCharts(); addNotification('success', 'Enchère supprimée !'); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  const exportData = () => { const dataStr = JSON.stringify(activeTab === 'users' ? users : activeTab === 'encheres' ? encheres : categories, null, 2); const linkElement = document.createElement('a'); linkElement.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)); linkElement.setAttribute('download', 'export.json'); linkElement.click(); };
+  
+  const openModal = (t, i = null) => { setModalType(t); setEditingItem(i); setCategoryName(i?.libelleCategorie || ''); setShowModal(true); };
+  const closeModal = () => { setShowModal(false); setEditingItem(null); setCategoryName(''); };
 
-  const handleEditCategory = async () => {
-    if (!categoryName.trim()) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/categories/${editingItem.id}`, {
-        method: 'PUT', headers: getHeaders(), body: JSON.stringify({ libelleCategorie: categoryName.trim(), description: editingItem.description || "" })
-      });
-      if (!res.ok) throw new Error('Erreur');
-      await fetchCategories(); setShowModal(false); setEditingItem(null); setCategoryName('');
-      addNotification('success', 'Catégorie modifiée !');
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
-  };
-
-  const toggleUserStatus = async (id, curr) => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/users/${id}/status`, {
-        method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ etatCompte: !curr })
-      });
-      if (!res.ok) throw new Error('Erreur');
-      await fetchStatsAndUsers();
-      addNotification('success', `Utilisateur ${!curr ? 'activé' : 'bloqué'} !`);
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
-  };
-
-  const deleteEnchere = async (id) => {
-    if (!window.confirm('Supprimer ?')) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/encheres/${id}`, { method: 'DELETE', headers: getHeaders() });
-      if (!res.ok) throw new Error('Erreur');
-      await fetchEncheresAndCharts();
-      addNotification('success', 'Enchère supprimée !');
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
-  };
-
-  const exportData = () => {
-    const dataToExport = activeTab === 'users' ? users : activeTab === 'encheres' ? encheres : categories;
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `${activeTab}_${new Date().toISOString()}.json`);
-    linkElement.click();
-  };
-
-  const openModal = (t, i = null) => { setModalType(t); setEditingItem(i); setCategoryName(i?.libelleCategorie || ''); setShowModal(true); setError(null); };
-  const closeModal = () => { setShowModal(false); setEditingItem(null); setCategoryName(''); setError(null); };
-
-  // --- FILTERS ---
-  const filteredUsers = users.filter(u => u?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) || u?.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredUsers = users.filter(u => u?.nom?.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredEncheres = encheres.filter(e => {
     const matchSearch = e?.nomProduit?.toLowerCase().includes(searchTerm.toLowerCase());
     if (enchereFilter === 'all') return matchSearch;
@@ -350,9 +285,8 @@ export default function AdminDashboard() {
   });
 
   // ===========================================================================
-  // 2. RENDU DU DESIGN (MODERNE)
+  // 2. RENDU DU DESIGN (PREMIUM)
   // ===========================================================================
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       
@@ -375,7 +309,6 @@ export default function AdminDashboard() {
                 <RefreshCw className="w-5 h-5 text-gray-600" />
               </button>
               
-              {/* CLOCHE DE NOTIFICATION */}
               <div className="relative">
                 <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
                   <Bell className="w-5 h-5 text-gray-600" />
@@ -435,21 +368,30 @@ export default function AdminDashboard() {
 
         {/* NAVIGATION TABS */}
         <div className="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            {['stats', 'encheres', 'categories', 'users'].map(t => (
-              <button 
-                key={t} 
-                onClick={() => handleTabChange(t)} 
-                className={`flex-1 min-w-fit px-6 py-4 font-medium transition-all ${
-                  activeTab === t ? 'border-b-3 border-orange-600 text-orange-600 bg-orange-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                {t === 'stats' ? <><BarChart3 className="inline w-5 h-5 mr-2" />Statistiques</> : 
-                 t === 'encheres' ? <><Gavel className="inline w-5 h-5 mr-2" />Enchères</> :
-                 t === 'categories' ? <><Tag className="inline w-5 h-5 mr-2" />Catégories</> : 
-                 <><Users className="inline w-5 h-5 mr-2" />Utilisateurs</>}
-              </button>
-            ))}
+          <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
+            {[
+              { id: 'stats', label: 'Statistiques', icon: BarChart3 },
+              { id: 'encheres', label: 'Enchères', icon: Gavel },
+              { id: 'categories', label: 'Catégories', icon: Tag },
+              { id: 'users', label: 'Utilisateurs', icon: Users },
+              { id: 'messages', label: 'Messages', icon: MessageSquare }
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button 
+                  key={tab.id} 
+                  onClick={() => handleTabChange(tab.id)} 
+                  className={`flex-1 min-w-[140px] px-6 py-4 font-medium transition-all flex items-center justify-center gap-2 ${
+                    activeTab === tab.id 
+                    ? 'border-b-4 border-orange-600 text-orange-600 bg-orange-50' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -475,33 +417,41 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* --- GRAPHIQUES CORRIGÉS ET STYLISÉS --- */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">📈 Évolution (7 jours)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="encheres" stroke="#f97316" strokeWidth={2} name="Enchères" />
-                    <Line type="monotone" dataKey="participants" stroke="#3b82f6" strokeWidth={2} name="Offres" />
-                  </LineChart>
-                </ResponsiveContainer>
+                
+                {/* FIX POUR AFFICHAGE BLANC : Style inline forcé */}
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis allowDecimals={false} domain={[0, 'auto']} />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="encheres" stroke="#f97316" strokeWidth={2} name="Enchères" dot={{r:4}} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="participants" stroke="#3b82f6" strokeWidth={2} name="Offres" dot={{r:4}} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-6">
+
+              <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">💰 Volume d'offres (7 jours)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="revenus" fill="#10b981" name="Volume (DT)" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis domain={[0, 'auto']} />
+                      <Tooltip formatter={(value) => [`${value} DT`, 'Revenus']} />
+                      <Legend />
+                      <Bar dataKey="revenus" fill="#10b981" name="Volume (DT)" radius={[4,4,0,0]} isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
@@ -529,6 +479,57 @@ export default function AdminDashboard() {
               </div>
             </div>
           </>
+        )}
+
+        {/* CONTENU : MESSAGES (STYLE PREMIUM AJOUTÉ) */}
+        {activeTab === 'messages' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center gap-2"><MessageSquare className="w-6 h-6" /> Boîte de Réception</h2>
+                  <p className="opacity-90 text-sm mt-1">{messages.length} message(s)</p>
+                </div>
+                <button onClick={fetchMessages} className="bg-white/20 p-2 rounded-lg hover:bg-white/30 transition"><RefreshCw className="w-5 h-5 text-white" /></button>
+             </div>
+             <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th className="px-6 py-4 text-left font-semibold text-gray-600">Date</th>
+                            <th className="px-6 py-4 text-left font-semibold text-gray-600">Auteur</th>
+                            <th className="px-6 py-4 text-left font-semibold text-gray-600">Sujet</th>
+                            <th className="px-6 py-4 text-left font-semibold text-gray-600">Message</th>
+                            <th className="px-6 py-4 text-right font-semibold text-gray-600">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {loading ? (
+                             <tr><td colSpan="5" className="p-12 text-center text-gray-500">Chargement...</td></tr>
+                        ) : messages.length === 0 ? (
+                             <tr><td colSpan="5" className="p-16 text-center text-gray-400"><Mail className="w-12 h-12 mb-4 mx-auto text-gray-300"/>Aucun message.</td></tr>
+                        ) : messages.map(msg => (
+                            <tr key={msg.id} className="hover:bg-blue-50/50 transition-colors">
+                                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                    <div className="font-medium text-gray-700">{new Date(msg.dateEnvoi).toLocaleDateString()}</div>
+                                    <div className="text-xs text-gray-400">{new Date(msg.dateEnvoi).toLocaleTimeString()}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">{msg.name ? msg.name.charAt(0).toUpperCase() : "?"}</div>
+                                        <div><p className="font-bold text-gray-900 text-sm">{msg.name}</p><p className="text-xs text-gray-500">{msg.email}</p></div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 font-medium text-gray-800 text-sm">{msg.subject}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" title={msg.content}>{msg.content}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <button onClick={() => deleteMessage(msg.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+             </div>
+          </div>
         )}
 
         {/* CONTENU : ENCHERES */}

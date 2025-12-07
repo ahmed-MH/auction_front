@@ -1,176 +1,193 @@
 import React, { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import api from "../api/axios"; // Assurez-vous d'importer votre instance axios
+import { Mail, Phone, MapPin, Send, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
 
 const Contact = () => {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         subject: "",
-        message: "",
+        content: "", // Changé de 'message' à 'content' pour matcher le backend
     });
 
-    const [status, setStatus] = useState("");
+    const [status, setStatus] = useState("idle"); // idle, sending, success, error
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Simulate form submission
         setStatus("sending");
-        setTimeout(() => {
+
+        try {
+            // Appel API vers le backend
+            await api.post("/api/messages", formData);
+            
             setStatus("success");
-            setFormData({ name: "", email: "", subject: "", message: "" });
-        }, 1500);
+            setFormData({ name: "", email: "", subject: "", content: "" });
+            
+            // Remettre le statut à idle après 5 secondes
+            setTimeout(() => setStatus("idle"), 5000);
+        } catch (error) {
+            console.error("Erreur envoi message", error);
+            setStatus("error");
+        }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
             <Header />
 
             <main className="flex-grow">
                 {/* Hero Section */}
-                <div className="bg-[#014152] text-white py-16">
-                    <div className="container mx-auto px-6 text-center">
-                        <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-                        <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                            Have questions about our auctions? Need help with your account?
-                            We're here to help! Reach out to us using the form below.
+                <div className="bg-gradient-to-r from-[#014152] to-[#022c38] text-white py-20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div className="container mx-auto px-6 text-center relative z-10">
+                        <span className="bg-white/10 px-4 py-1 rounded-full text-sm font-medium mb-4 inline-block backdrop-blur-sm">Support 24/7</span>
+                        <h1 className="text-5xl font-bold mb-6">Contactez-nous</h1>
+                        <p className="text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
+                            Une question sur une enchère ? Un problème technique ? 
+                            Notre équipe est là pour vous répondre rapidement.
                         </p>
                     </div>
                 </div>
 
-                <div className="container mx-auto px-6 py-12 -mt-10">
+                <div className="container mx-auto px-6 py-12 -mt-16 relative z-20">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                         {/* Contact Info Cards */}
                         <div className="lg:col-span-1 space-y-6">
-                            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-                                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-6">
-                                    <Phone className="w-6 h-6" />
+                            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 transform hover:-translate-y-1 transition-all duration-300">
+                                <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 mb-6 shadow-sm">
+                                    <Phone className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Phone</h3>
-                                <p className="text-gray-500 mb-4">Mon-Fri from 8am to 5pm.</p>
-                                <a href="tel:+21612345789" className="text-orange-600 font-medium hover:underline">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Téléphone</h3>
+                                <p className="text-gray-500 mb-4">Lun-Ven de 8h à 18h.</p>
+                                <a href="tel:+21612345789" className="text-orange-600 font-bold hover:text-orange-700 text-lg">
                                     +216 12 345 789
                                 </a>
                             </div>
 
-                            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-6">
-                                    <Mail className="w-6 h-6" />
+                            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 transform hover:-translate-y-1 transition-all duration-300">
+                                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 shadow-sm">
+                                    <Mail className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Email</h3>
-                                <p className="text-gray-500 mb-4">Our friendly team is here to help.</p>
-                                <a href="mailto:support@tunibid.com" className="text-orange-600 font-medium hover:underline">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Email</h3>
+                                <p className="text-gray-500 mb-4">Réponse sous 24h garantie.</p>
+                                <a href="mailto:support@tunibid.com" className="text-blue-600 font-bold hover:text-blue-700 text-lg">
                                     support@tunibid.com
                                 </a>
                             </div>
 
-                            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
-                                    <MapPin className="w-6 h-6" />
+                            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 transform hover:-translate-y-1 transition-all duration-300">
+                                <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-6 shadow-sm">
+                                    <MapPin className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Office</h3>
-                                <p className="text-gray-500 mb-4">Come say hello at our office headquarters.</p>
-                                <p className="text-gray-800 font-medium">
-                                    1000 Sousse, Tunisia
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Siège Social</h3>
+                                <p className="text-gray-500 mb-4">Venez nous rencontrer.</p>
+                                <p className="text-gray-800 font-medium text-lg">
+                                    1000 Sousse, Tunisie
                                 </p>
                             </div>
                         </div>
 
                         {/* Contact Form */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 lg:p-12 h-full">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-6">Send us a message</h2>
+                            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 lg:p-12 h-full">
+                                <div className="flex items-center gap-3 mb-8">
+                                    <MessageSquare className="w-8 h-8 text-[#014152]" />
+                                    <h2 className="text-3xl font-bold text-gray-900">Envoyez un message</h2>
+                                </div>
 
                                 {status === "success" ? (
-                                    <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg flex items-center">
-                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center animate-in fade-in zoom-in duration-300">
+                                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CheckCircle className="w-8 h-8" />
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold">Message Sent!</h4>
-                                            <p className="text-sm">We'll get back to you as soon as possible.</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setStatus("")}
-                                            className="ml-auto text-green-600 hover:text-green-800"
-                                        >
-                                            Send another
+                                        <h3 className="text-2xl font-bold text-green-800 mb-2">Message Envoyé !</h3>
+                                        <p className="text-green-700 mb-6">Merci de nous avoir contactés. Nous reviendrons vers vous très vite.</p>
+                                        <button onClick={() => setStatus("idle")} className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium transition">
+                                            Envoyer un autre message
                                         </button>
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSubmit} className="space-y-6">
+                                        {status === "error" && (
+                                            <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2 border border-red-200">
+                                                <AlertCircle className="w-5 h-5"/> Une erreur est survenue. Veuillez réessayer.
+                                            </div>
+                                        )}
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Votre Nom</label>
                                                 <input
                                                     type="text"
                                                     name="name"
                                                     value={formData.name}
                                                     onChange={handleChange}
                                                     required
-                                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
                                                     placeholder="John Doe"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Your Email</label>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Votre Email</label>
                                                 <input
                                                     type="email"
                                                     name="email"
                                                     value={formData.email}
                                                     onChange={handleChange}
                                                     required
-                                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
                                                     placeholder="john@example.com"
                                                 />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Sujet</label>
                                             <input
                                                 type="text"
                                                 name="subject"
                                                 value={formData.subject}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
-                                                placeholder="How can we help?"
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                                                placeholder="Comment pouvons-nous vous aider ?"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Message</label>
                                             <textarea
-                                                name="message"
-                                                value={formData.message}
+                                                name="content" // Important : doit matcher 'content' dans le state
+                                                value={formData.content}
                                                 onChange={handleChange}
                                                 required
                                                 rows="6"
-                                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all resize-none"
-                                                placeholder="Tell us more about your inquiry..."
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all resize-none"
+                                                placeholder="Détaillez votre demande..."
                                             ></textarea>
                                         </div>
 
                                         <button
                                             type="submit"
                                             disabled={status === "sending"}
-                                            className="w-full bg-orange-600 text-white font-bold py-4 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center disabled:opacity-70"
+                                            className="w-full bg-orange-600 text-white font-bold py-4 rounded-xl hover:bg-orange-700 transition-all transform hover:-translate-y-1 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-orange-500/30"
                                         >
                                             {status === "sending" ? (
-                                                <>Sending...</>
+                                                <div className="flex items-center">
+                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                    Envoi en cours...
+                                                </div>
                                             ) : (
                                                 <>
                                                     <Send className="w-5 h-5 mr-2" />
-                                                    Send Message
+                                                    Envoyer le message
                                                 </>
                                             )}
                                         </button>
