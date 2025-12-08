@@ -338,10 +338,17 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+              className={`w-full py-4 rounded-lg text-lg font-semibold text-white transition flex items-center justify-center gap-2 ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
                 }`}
             >
-              {loading ? "Creating Auction..." : "Submit Auction"}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating Auction...
+                </>
+              ) : (
+                "Submit Auction"
+              )}
             </button>
           </form>
         </div>

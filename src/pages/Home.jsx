@@ -50,7 +50,7 @@ const Home = () => {
         });
 
         setCurrentAuctions(current.map(mapAuction));
-        setEndedAuctions(ended.slice(0, 4).map(mapAuction)); 
+        setEndedAuctions(ended.slice(0, 4).map(mapAuction));
       } catch (err) {
         console.error("Error fetching auctions:", err);
       } finally {
@@ -85,30 +85,31 @@ const Home = () => {
       <Header />
 
       <main className="container mx-auto px-6 py-8 space-y-16">
-        
+
         {/* --- 1. HERO SECTION --- */}
-        <section className="relative rounded-3xl overflow-hidden shadow-2xl text-white h-[500px] flex items-center">
+        {/* --- 1. HERO SECTION --- */}
+        <section className="relative rounded-3xl overflow-hidden shadow-2xl text-white min-h-[500px] flex items-center">
           {/* Background Image avec Overlay */}
-          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" 
-               style={{ backgroundImage: "url('/banner1.png')" }}>
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            style={{ backgroundImage: "url('/banner1.png')" }}>
           </div>
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/60 to-transparent"></div>
 
-          <div className="relative z-10 px-10 md:px-16 max-w-2xl">
-            <span className="inline-block py-1 px-3 rounded-full bg-orange-500/20 border border-orange-500 text-orange-400 text-sm font-semibold mb-6 backdrop-blur-sm">
+          <div className="relative z-10 px-6 py-12 md:px-16 max-w-2xl w-full">
+            <span className="inline-block py-1 px-3 rounded-full bg-orange-500/20 border border-orange-500 text-orange-400 text-xs md:text-sm font-semibold mb-6 backdrop-blur-sm">
               🚀 Enchères en direct
             </span>
-            <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-              Vos enchères, <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500">vos victoires.</span>
+            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
+              Vos enchères, <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500">vos victoires.</span>
             </h1>
-            <p className="text-lg text-gray-300 mb-8 leading-relaxed">
+            <p className="text-base md:text-lg text-gray-300 mb-8 leading-relaxed">
               Participez aux meilleures enchères du moment et remportez des produits exclusifs à des prix imbattables.
             </p>
-            <div className="flex gap-4">
-              <Link to="/products" className="bg-orange-600 text-white px-8 py-4 rounded-full font-bold hover:bg-orange-700 transition-all shadow-lg hover:shadow-orange-500/30 flex items-center gap-2">
-                Commencer <ArrowRight className="w-5 h-5"/>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link to="/products" className="bg-orange-600 text-white px-8 py-4 rounded-full font-bold hover:bg-orange-700 transition-all shadow-lg hover:shadow-orange-500/30 flex items-center justify-center gap-2">
+                Commencer <ArrowRight className="w-5 h-5" />
               </Link>
-              <Link to="/auth" className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all">
+              <Link to="/auth" className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all text-center">
                 S'inscrire
               </Link>
             </div>
@@ -120,7 +121,7 @@ const Home = () => {
         {/* --- 3. CURRENT AUCTIONS --- */}
         <section>
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Zap className="w-6 h-6"/></div>
+            <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Zap className="w-6 h-6" /></div>
             <h2 className="text-3xl font-bold text-gray-900">Enchères en cours</h2>
           </div>
 
@@ -161,7 +162,7 @@ const Home = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-orange-600/90 to-transparent"></div>
             <div className="relative z-10 p-10">
               <span className="text-orange-200 font-bold tracking-wider text-xs uppercase">Promo Spéciale</span>
-              <h3 className="text-3xl font-bold text-white mb-4 mt-2">Électronique <br/> Premium</h3>
+              <h3 className="text-3xl font-bold text-white mb-4 mt-2">Électronique <br /> Premium</h3>
               <button className="text-white border border-white/30 bg-white/10 backdrop-blur-sm px-6 py-2 rounded-lg hover:bg-white hover:text-orange-600 transition-all font-semibold">
                 Voir l'offre
               </button>
@@ -173,7 +174,7 @@ const Home = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-transparent"></div>
             <div className="relative z-10 p-10">
               <span className="text-blue-200 font-bold tracking-wider text-xs uppercase">Nouvel Arrivage</span>
-              <h3 className="text-3xl font-bold text-white mb-4 mt-2">Mode & <br/> Accessoires</h3>
+              <h3 className="text-3xl font-bold text-white mb-4 mt-2">Mode & <br /> Accessoires</h3>
               <button className="text-white border border-white/30 bg-white/10 backdrop-blur-sm px-6 py-2 rounded-lg hover:bg-white hover:text-blue-900 transition-all font-semibold">
                 Voir l'offre
               </button>
@@ -184,7 +185,7 @@ const Home = () => {
         {/* --- 5. ENDED AUCTIONS --- */}
         <section>
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-gray-200 rounded-lg text-gray-700"><Clock className="w-6 h-6"/></div>
+            <div className="p-2 bg-gray-200 rounded-lg text-gray-700"><Clock className="w-6 h-6" /></div>
             <h2 className="text-3xl font-bold text-gray-900">Dernières ventes</h2>
           </div>
 
@@ -231,25 +232,25 @@ const Home = () => {
             <h2 className="text-3xl font-bold text-gray-900 mb-3">Pourquoi nous choisir ?</h2>
             <p className="text-gray-500">Une plateforme sécurisée et transparente pour toutes vos enchères.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { 
-                title: "Paiement Sécurisé", 
-                desc: "Transactions chiffrées et protégées.", 
-                icon: <Shield className="w-8 h-8 text-orange-600"/>,
+              {
+                title: "Paiement Sécurisé",
+                desc: "Transactions chiffrées et protégées.",
+                icon: <Shield className="w-8 h-8 text-orange-600" />,
                 color: "bg-orange-50"
               },
-              { 
-                title: "Vendeurs Vérifiés", 
-                desc: "Identité contrôlée pour chaque vendeur.", 
-                icon: <CheckCircle className="w-8 h-8 text-blue-600"/>,
+              {
+                title: "Vendeurs Vérifiés",
+                desc: "Identité contrôlée pour chaque vendeur.",
+                icon: <CheckCircle className="w-8 h-8 text-blue-600" />,
                 color: "bg-blue-50"
               },
-              { 
-                title: "Support 24/7", 
-                desc: "Une équipe dédiée à votre écoute.", 
-                icon: <Headphones className="w-8 h-8 text-purple-600"/>,
+              {
+                title: "Support 24/7",
+                desc: "Une équipe dédiée à votre écoute.",
+                icon: <Headphones className="w-8 h-8 text-purple-600" />,
                 color: "bg-purple-50"
               }
             ].map((item, idx) => (

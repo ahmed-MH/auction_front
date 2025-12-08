@@ -12,6 +12,7 @@ const Auth = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
   const [verificationCode, setVerificationCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,6 +26,7 @@ const Auth = () => {
       return;
     }
 
+    setLoading(true);
     try {
       const response = await api.post("/api/auth/verify", {
         email: formData.email,
@@ -40,6 +42,8 @@ const Auth = () => {
     } catch (err) {
       const message = err.response?.data?.message || "Code invalide";
       await alert(message, { variant: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,6 +55,8 @@ const Auth = () => {
       await alert("Tous les champs obligatoires doivent être remplis", { variant: "warning" });
       return;
     }
+
+    setLoading(true);
 
     try {
       const url = isLogin ? "/api/auth/authenticate" : "/api/auth/register";
@@ -112,6 +118,8 @@ const Auth = () => {
       }
 
       await alert(errMsg, { variant: "error", title: "Erreur" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -167,9 +175,17 @@ const Auth = () => {
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-600/30 flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transform transition-all shadow-lg shadow-green-600/30 flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed scale-100' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                 >
-                  Verify Account
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify Account"
+                  )}
                 </button>
                 <div className="mt-4 text-center">
                   <button
@@ -229,10 +245,20 @@ const Auth = () => {
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-red-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className={`w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-red-700 transform transition-all shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed scale-100' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                 >
-                  {isLogin ? "Sign In" : "Create Account"}
-                  <ArrowRight className="w-5 h-5" />
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {isLogin ? "Signing In..." : "Creating Account..."}
+                    </>
+                  ) : (
+                    <>
+                      {isLogin ? "Sign In" : "Create Account"}
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               </form>
             )}
