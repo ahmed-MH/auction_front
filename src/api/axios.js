@@ -26,10 +26,12 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             // Optionnel : Rediriger vers login ou nettoyer le storage
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            window.location.href = "/auth";
-            console.warn("Session expirée ou non autorisée.");
+            // localStorage.removeItem("token");
+            // localStorage.removeItem("user");
+            // if (window.location.pathname !== "/auth") {
+            //    window.location.href = "/auth";
+            // }
+            console.warn("Session expirée ou non autorisée.", error.response.data);
         }
         return Promise.reject(error);
     }
