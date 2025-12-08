@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useModal } from "../context/ModalContext";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Mail, Lock, User, ArrowRight, LogIn, UserPlus, CheckCircle } from "lucide-react";
@@ -25,18 +26,10 @@ const Auth = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, code: verificationCode }),
+      const response = await api.post("/auth/verify", {
+        email: formData.email,
+        code: verificationCode,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        await alert(data.message || "Code invalide", { variant: "error" });
-        return;
-      }
 
       await alert("Compte vérifié avec succès ! Veuillez vous connecter.", { variant: "success" });
       setIsVerifying(false);
@@ -45,7 +38,8 @@ const Auth = () => {
       setFormData({ nom: "", email: "", password: "" });
 
     } catch (err) {
-      await alert(err.message || "Erreur réseau", { variant: "error" });
+      const message = err.response?.data?.message || "Code invalide";
+      await alert(message, { variant: "error" });
     }
   };
 
@@ -59,50 +53,17 @@ const Auth = () => {
     }
 
     try {
-      const url = isLogin
-        ? "http://localhost:8080/api/auth/authenticate"
-        : "http://localhost:8080/api/auth/register";
-
+      const url = isLogin ? "/auth/authenticate" : "/auth/register";
       const body = isLogin
         ? { email, password }
         : { nom, email, password, roles: ["USER"] };
 
       console.log("📤 Envoi requête:", { url, body });
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      // Toujours lire la réponse JSON
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = { message: await response.text() };
-      }
+      const response = await api.post(url, body);
+      const data = response.data;
 
       console.log("📥 Réponse complète:", data);
-      console.log("📥 Status:", response.status);
-
-      if (!response.ok) {
-        let errMsg = data?.message || "Erreur serveur";
-
-        // Custom messages based on status code
-        if (response.status === 404) {
-          errMsg = "Aucun compte n'est associé à cet email. Veuillez vous inscrire.";
-        } else if (response.status === 401 || response.status === 403) {
-          errMsg = "Email ou mot de passe incorrect (ou compte non vérifié).";
-        } else if (data?.details) {
-          const details = Object.values(data.details).join(", ");
-          errMsg = `${errMsg}: ${details}`;
-        }
-
-        await alert(errMsg, { variant: "error", title: "Erreur" });
-        console.error("❌ Erreur:", data);
-        return;
-      }
 
       if (isLogin) {
         // ✅ LOGIN
@@ -136,8 +97,21 @@ const Auth = () => {
         setIsVerifying(true);
       }
     } catch (err) {
-      await alert(err.message || "Erreur réseau", { variant: "error" });
-      console.error("❌ Erreur réseau:", err);
+      console.error("❌ Erreur:", err);
+      let errMsg = err.response?.data?.message || "Erreur serveur";
+      const status = err.response?.status;
+
+      // Custom messages based on status code
+      if (status === 404) {
+        errMsg = "Aucun compte n'est associé à cet email. Veuillez vous inscrire.";
+      } else if (status === 401 || status === 403) {
+        errMsg = "Email ou mot de passe incorrect (ou compte non vérifié).";
+      } else if (err.response?.data?.details) {
+        const details = Object.values(err.response.data.details).join(", ");
+        errMsg = `${errMsg}: ${details}`;
+      }
+
+      await alert(errMsg, { variant: "error", title: "Erreur" });
     }
   };
 
