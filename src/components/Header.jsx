@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useModal } from "../context/ModalContext";
 import api from "../api/axios";
 import Navbar from "./Navbar";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,8 +10,10 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("user"));
 
-  const handleLogout = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+  const { confirm } = useModal();
+
+  const handleLogout = async () => {
+    if (await confirm("Êtes-vous sûr de vouloir vous déconnecter ?", { title: "Déconnexion" })) {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       localStorage.removeItem("userId");

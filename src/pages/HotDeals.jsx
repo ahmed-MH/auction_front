@@ -18,8 +18,19 @@ const HotDeals = () => {
                 // We'll sort by dateFin if available, otherwise just take the first few
                 let sortedProducts = res.data;
 
-                if (sortedProducts.length > 0 && sortedProducts[0].dateFin) {
-                    sortedProducts = sortedProducts.sort((a, b) => new Date(a.dateFin) - new Date(b.dateFin));
+                if (res.data) {
+                    const now = new Date();
+                    const endOfToday = new Date();
+                    endOfToday.setHours(23, 59, 59, 999);
+
+                    sortedProducts = res.data.filter(p => {
+                        const endDate = new Date(p.dateFin);
+                        // Active AND Ends today (between now and midnight)
+                        return p.statut !== 'TERMINEE' && endDate > now && endDate <= endOfToday;
+                    });
+
+                    // Sort by ending soonest
+                    sortedProducts.sort((a, b) => new Date(a.dateFin) - new Date(b.dateFin));
                 }
 
                 setProducts(sortedProducts);

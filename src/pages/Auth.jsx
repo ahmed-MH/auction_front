@@ -1,227 +1,284 @@
 import React, { useState } from "react";
+import { useModal } from "../context/ModalContext";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { Mail, Lock, User, ArrowRight, LogIn, UserPlus, CheckCircle } from "lucide-react";
 
 const Auth = () => {
-    const [isLogin, setIsLogin] = useState(true);
-    const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
-    const [error, setError] = useState("");
-    const navigate = useNavigate();
-  
-    const handleChange = (e) => {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-  
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      const { nom, email, password } = formData;
-  
-      if (!email || !password || (!isLogin && !nom)) {
-        setError("Tous les champs obligatoires doivent être remplis");
+  const { alert } = useModal();
+  const [isLogin, setIsLogin] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [formData, setFormData] = useState({ nom: "", email: "", password: "" });
+  const [verificationCode, setVerificationCode] = useState("");
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!verificationCode) {
+      await alert("Veuillez entrer le code de vérification", { variant: "warning" });
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, code: verificationCode }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        await alert(data.message || "Code invalide", { variant: "error" });
         return;
       }
-  
-      setError("");
-  
+
+      await alert("Compte vérifié avec succès ! Veuillez vous connecter.", { variant: "success" });
+      setIsVerifying(false);
+      setIsLogin(true);
+      setVerificationCode("");
+      setFormData({ nom: "", email: "", password: "" });
+
+    } catch (err) {
+      await alert(err.message || "Erreur réseau", { variant: "error" });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { nom, email, password } = formData;
+
+    if (!email || !password || (!isLogin && !nom)) {
+      await alert("Tous les champs obligatoires doivent être remplis", { variant: "warning" });
+      return;
+    }
+
+    try {
+      const url = isLogin
+        ? "http://localhost:8080/api/auth/authenticate"
+        : "http://localhost:8080/api/auth/register";
+
+      const body = isLogin
+        ? { email, password }
+        : { nom, email, password, roles: ["USER"] };
+
+      console.log("📤 Envoi requête:", { url, body });
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      // Toujours lire la réponse JSON
+      let data;
       try {
-        const url = isLogin
-          ? "http://localhost:8080/api/auth/authenticate"
-          : "http://localhost:8080/api/auth/register";
-  
-        const body = isLogin
-          ? { email, password }
-          : { nom, email, password, roles: ["USER"] };
-  
-        console.log("📤 Envoi requête:", { url, body });
-  
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-  
-        // Toujours lire la réponse JSON
-        let data;
-        try {
-          data = await response.json();
-        } catch {
-          data = { message: await response.text() };
+        data = await response.json();
+      } catch {
+        data = { message: await response.text() };
+      }
+
+      console.log("📥 Réponse complète:", data);
+      console.log("📥 Status:", response.status);
+
+      if (!response.ok) {
+        let errMsg = data?.message || "Erreur serveur";
+
+        // Custom messages based on status code
+        if (response.status === 404) {
+          errMsg = "Aucun compte n'est associé à cet email. Veuillez vous inscrire.";
+        } else if (response.status === 401 || response.status === 403) {
+          errMsg = "Email ou mot de passe incorrect (ou compte non vérifié).";
+        } else if (data?.details) {
+          const details = Object.values(data.details).join(", ");
+          errMsg = `${errMsg}: ${details}`;
         }
-  
-        console.log("📥 Réponse complète:", data);
-        console.log("📥 Status:", response.status);
-  
-        if (!response.ok) {
-          const errMsg = data?.message || "Erreur serveur";
-          if (data?.details) {
-            const details = Object.values(data.details).join(", ");
-            setError(`${errMsg}: ${details}`);
-          } else {
-            setError(errMsg);
-          }
-          console.error("❌ Erreur:", data);
+
+        await alert(errMsg, { variant: "error", title: "Erreur" });
+        console.error("❌ Erreur:", data);
+        return;
+      }
+
+      if (isLogin) {
+        // ✅ LOGIN
+        const token = data.accessToken || data.token || data.jwtToken || data.jwt;
+        const userId = data.id || data.userId || data.user_id;
+        const userName = data.nom || data.name || data.username || data.fullName;
+        const userEmail = data.email;
+        const userRole = data.role || (data.roles && data.roles[0]) || "USER";
+
+        if (!token) {
+          await alert("Token manquant dans la réponse du serveur", { variant: "error" });
           return;
         }
-  
-        if (isLogin) {
-          // ✅ LOGIN - Essayer toutes les variantes possibles
-          const token = data.accessToken || data.token || data.jwtToken || data.jwt;
-          const userId = data.id || data.userId || data.user_id;
-          const userName = data.nom || data.name || data.username || data.fullName;
-          const userEmail = data.email;
-          const userRole = data.role || (data.roles && data.roles[0]) || "USER";
-  
-          console.log("🔍 Extraction des données:");
-          console.log("  - Token:", token);
-          console.log("  - Role:", userRole);
-          console.log("  - User ID:", userId);
-          console.log("  - User Name:", userName);
-  
-          if (!token) {
-            setError("❌ Token manquant dans la réponse du serveur");
-            console.error("Structure reçue:", Object.keys(data));
-            return;
-          }
-  
-          // Sauvegarder dans localStorage
-          localStorage.setItem("token", token); // ✅ Sauvegarder aussi sous "token" pour cohérence avec axios.js
-          localStorage.setItem("jwtToken", token);
-          localStorage.setItem("userId", userId);
-          localStorage.setItem("userName", userName);
-          localStorage.setItem("userEmail", userEmail);
-          localStorage.setItem("userRole", userRole);
-          localStorage.setItem("user", JSON.stringify(data));
-      
-          console.log("✅ Connexion réussie!");
-          console.log("💾 localStorage:", {
-            jwtToken: localStorage.getItem('jwtToken'),
-            userRole: localStorage.getItem('userRole')
-          });
-      
-          // Redirection selon le rôle
-          if (userRole === "ADMIN") {
-            console.log("➡️ Redirection vers /admindashboard");
-            navigate("/admindashboard");
-          } else {
-            console.log("➡️ Redirection vers /");
-            navigate("/");
-          }
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("jwtToken", token);
+        localStorage.setItem("userId", userId);
+        localStorage.setItem("userName", userName);
+        localStorage.setItem("userEmail", userEmail);
+        localStorage.setItem("userRole", userRole);
+        localStorage.setItem("user", JSON.stringify(data));
+
+        if (userRole === "ADMIN") {
+          navigate("/admindashboard");
         } else {
-          // ✅ SIGNUP - Inscription réussie
-          alert("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-          console.log("✅ Nouvel utilisateur créé:", data);
-          setIsLogin(true);
-          setFormData({ nom: "", email: "", password: "" });
+          navigate("/");
         }
-      } catch (err) {
-        setError(err.message || "Erreur réseau");
-        console.error("❌ Erreur réseau:", err);
+      } else {
+        // ✅ SIGNUP -> Pass to Verification
+        await alert("Inscription réussie ! Un code a été envoyé à votre email.", { variant: "success" });
+        setIsVerifying(true);
       }
-    };
-  
+    } catch (err) {
+      await alert(err.message || "Erreur réseau", { variant: "error" });
+      console.error("❌ Erreur réseau:", err);
+    }
+  };
+
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <main className="container mx-auto px-6 py-8">
-        <div className="text-gray-500 text-sm mb-6">Home / Login & Sign up</div>
 
-        <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
-          {isLogin ? (
-            <>
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Login</h2>
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Votre email..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Password</label>
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Votre mot de passe..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </div>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
-                <button
-                  type="submit"
-                  className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
-                >
-                  Sign in
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Sign up</h2>
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Nom</label>
+      <main className="flex-grow flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#014152] via-[#01303f] to-[#01202a] z-0"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF6B39] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#0284a3] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+        <div className="max-w-md w-full relative z-10 animate-fadeIn">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-extrabold text-white mb-2 tracking-tight">
+              {isVerifying ? "Verify Account" : (isLogin ? "Welcome Back" : "Join Us Today")}
+            </h2>
+            <p className="text-blue-200 text-lg">
+              {isVerifying
+                ? "Enter the code sent to your email"
+                : (isLogin ? "Enter your details to access your account" : "Start your journey with us")}
+            </p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl overflow-hidden p-8 transform transition-all duration-300 hover:shadow-orange-900/20">
+            <div className="flex justify-center mb-8">
+              <div className="bg-white/20 p-3 rounded-full shadow-inner">
+                {isVerifying ? (
+                  <CheckCircle className="w-8 h-8 text-white" />
+                ) : (
+                  isLogin ? <LogIn className="w-8 h-8 text-white" /> : <UserPlus className="w-8 h-8 text-white" />
+                )}
+              </div>
+            </div>
+
+            {isVerifying ? (
+              <form className="space-y-6" onSubmit={handleVerify}>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors" />
+                  </div>
                   <input
                     type="text"
-                    name="nom"
-                    placeholder="Votre nom..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                    value={formData.nom}
-                    onChange={handleChange}
+                    name="code"
+                    placeholder="Verification Code (6 digits)"
+                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all hover:bg-white/10 text-center tracking-widest text-xl"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    maxLength={6}
                   />
                 </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Email</label>
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-600/30 flex items-center justify-center gap-2"
+                >
+                  Verify Account
+                </button>
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsVerifying(false)}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Back to Sign Up
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                {!isLogin && (
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors" />
+                    </div>
+                    <input
+                      type="text"
+                      name="nom"
+                      placeholder="Full Name"
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all hover:bg-white/10"
+                      value={formData.nom}
+                      onChange={handleChange}
+                    />
+                  </div>
+                )}
+
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors" />
+                  </div>
                   <input
                     type="email"
                     name="email"
-                    placeholder="Votre email..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    placeholder="Email Address"
+                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all hover:bg-white/10"
                     value={formData.email}
                     onChange={handleChange}
                   />
                 </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Password</label>
+
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-orange-400 transition-colors" />
+                  </div>
                   <input
                     type="password"
                     name="password"
-                    placeholder="Votre mot de passe..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    placeholder="Password"
+                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all hover:bg-white/10"
                     value={formData.password}
                     onChange={handleChange}
                   />
                 </div>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+
                 <button
                   type="submit"
-                  className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-red-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2"
                 >
-                  Register
+                  {isLogin ? "Sign In" : "Create Account"}
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               </form>
-            </>
-          )}
+            )}
 
-          <div className="text-center mt-6">
-            <button
-              onClick={() => { 
-                setIsLogin(!isLogin); 
-                setError(""); 
-                setFormData({ nom: "", email: "", password: "" });
-              }}
-              className="text-orange-600 hover:text-orange-800 font-medium"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
+            {!isVerifying && (
+              <div className="mt-8 text-center">
+                <p className="text-gray-300">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}
+                  <button
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setFormData({ nom: "", email: "", password: "" });
+                    }}
+                    className="ml-2 text-orange-400 hover:text-orange-300 font-bold hover:underline transition-colors"
+                  >
+                    {isLogin ? "Sign Up" : "Sign In"}
+                  </button>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

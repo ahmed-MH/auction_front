@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useModal } from "../context/ModalContext";
 import api from "../api/axios"; // instance centralisée
 import axios from "axios"; // pour Cloudinary qui n'a pas besoin de l'intercepteur
 import Header from "../components/Header";
@@ -8,6 +9,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 const AddBid = ({ currentUser, isUserLoaded }) => {
   const navigate = useNavigate();
+  const { alert } = useModal();
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -35,12 +37,12 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
   const userRole = localStorage.getItem("userRole") || user?.role;
-  
+
   // ❌ User non connecté → redirection
   if (!user || !token) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   // ❌ Mauvais rôle → redirection (permettre USER uniquement)
   if (userRole !== "USER" && user?.role !== "USER") {
     return <Navigate to="/auth" replace />;
@@ -96,7 +98,7 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
     const token = localStorage.getItem("token") || localStorage.getItem("jwtToken"); // Get token (essayer les deux clés)
 
     if (!userId || !token) {
-      alert("Vous devez être connecté pour ajouter une enchère.");
+      await alert("Vous devez être connecté pour ajouter une enchère.", { variant: "warning" });
       navigate("/auth");
       return;
     }
@@ -142,7 +144,7 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
 
       const res = await api.post("/api/encheres", payload);
 
-      alert("Enchère créée avec succès !");
+      await alert("Enchère créée avec succès !", { variant: "success" });
       console.log(res.data);
 
       // reset form
@@ -181,7 +183,7 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
 
         // Handle Session Expiry (Check for "JWT" in the message)
         if (err.response.status === 403 || (serverMessage && serverMessage.includes("JWT"))) {
-          alert("Votre session a expiré ou est invalide. Veuillez vous reconnecter.");
+          await alert("Votre session a expiré ou est invalide. Veuillez vous reconnecter.", { variant: "error" });
           localStorage.removeItem("token");
           localStorage.removeItem("userId");
           localStorage.removeItem("user");
@@ -194,7 +196,7 @@ const AddBid = ({ currentUser, isUserLoaded }) => {
         errorMessage += `\n${err.message}`;
       }
 
-      alert(errorMessage);
+      await alert(errorMessage, { variant: "error", title: "Erreur de Création" });
     } finally {
       setLoading(false); // Stop loading
     }

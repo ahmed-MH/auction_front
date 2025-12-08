@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useModal } from "../context/ModalContext";
 import api from "../api/axios";
 import axios from "axios"; // Cloudinary needs raw axios
 import Header from "../components/Header";
@@ -7,6 +8,7 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 
 const EditBid = ({ currentUser, isUserLoaded }) => {
   const navigate = useNavigate();
+  const { alert } = useModal();
   const location = useLocation();
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState([]); // peut contenir File ou {url}
@@ -55,12 +57,12 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
   const userRole = localStorage.getItem("userRole") || user?.role;
-  
+
   // ❌ User non connecté → redirection
   if (!user || !token) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   // ❌ Mauvais rôle → redirection (permettre USER uniquement)
   if (userRole !== "USER" && user?.role !== "USER") {
     return <Navigate to="/auth" replace />;
@@ -111,7 +113,7 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
 
     const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
     if (!token) {
-      alert("Vous devez être connecté.");
+      await alert("Vous devez être connecté.", { variant: "warning" });
       navigate("/auth");
       return;
     }
@@ -140,12 +142,12 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
         payload
       );
 
-      alert("Enchère mise à jour avec succès !");
+      await alert("Enchère mise à jour avec succès !", { variant: "success" });
       navigate("/products");
 
     } catch (err) {
       console.error("Erreur mise à jour :", err);
-      alert("Erreur lors de la mise à jour de l'enchère.");
+      await alert("Erreur lors de la mise à jour de l'enchère.", { variant: "error" });
     } finally {
       setLoading(false);
     }

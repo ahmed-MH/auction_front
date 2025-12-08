@@ -26,9 +26,9 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             // Optionnel : Rediriger vers login ou nettoyer le storage
-            // localStorage.removeItem("token");
-            // localStorage.removeItem("user");
-            // window.location.href = "/auth";
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/auth";
             console.warn("Session expirée ou non autorisée.");
         }
         return Promise.reject(error);

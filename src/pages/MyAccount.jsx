@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+import api from "../api/axios";
 import API_BASE_URL from "../config";
+import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Mail, Package, Gavel, LogOut, Settings, CreditCard } from "lucide-react";
 
@@ -31,74 +32,92 @@ const MyAccount = () => {
                 const userData = JSON.parse(storedUser);
                 setUser(userData);
 
-                const fetchStats = async (userId, token) => {
-                    try {
-                        const [auctionsRes, bidsRes, profileStatsRes] = await Promise.all([
-                            fetch(`${API_BASE_URL}/api/encheres/utilisateur/${userId}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            }),
-                            fetch(`${API_BASE_URL}/api/participations/utilisateur/${userId}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            }),
-                            fetch(`${API_BASE_URL}/api/profile/stats`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            })
-                        ]);
+                const fetchStats = async (userId) => {
+                    // Use api instance - interceptor handles token and 401
+                    const [auctionsRes, bidsRes, profileStatsRes] = await Promise.all([
+                        api.get(`/api/encheres/utilisateur/${userId}`),
+                        api.get(`/api/participations/utilisateur/${userId}`),
+                        api.get(`/api/profile/stats`)
+                    ]);
 
-                        const auctions = await auctionsRes.json();
-                        const bids = await bidsRes.json();
-                        const profileStats = await profileStatsRes.json();
+                    const auctions = auctionsRes.data;
+                    const bids = bidsRes.data;
+                    const profileStats = profileStatsRes.data;
 
-                        // 1. Transformer les enchères créées
-                        const createdActivities = auctions.map(a => ({
-                            type: 'CREATION',
-                            id: a.id,
-                            title: a.nomProduit,
-                            amount: a.prixDepart,
-                            date: new Date(a.dateDebut),
-                            status: a.statut
-                        }));
+                    // 1. Transformer les enchères créées
+                    const createdActivities = auctions.map(a => ({
+                        type: 'CREATION',
+                        id: a.id,
+                        title: a.nomProduit,
+                        amount: a.prixDepart,
+                        date: new Date(a.dateDebut),
+                        status: a.statut
+                    }));
 
-                        // 2. Transformer les participations
-                        const bidActivities = bids.map(b => ({
-                            type: 'BID',
-                            id: b.enchereId,
-                            title: b.nomProduit,
-                            amount: b.montant,
-                            date: new Date(b.dateParticipation),
-                            status: 'ACTIVE'
-                        }));
+                    // 2. Transformer les participations
+                    const bidActivities = bids.map(b => ({
+                        type: 'BID',
+                        id: b.enchereId,
+                        title: b.nomProduit,
+                        amount: b.montant,
+                        date: new Date(b.dateParticipation),
+                        status: 'ACTIVE'
+                    }));
 
-                        // 3. Fusionner et trier (plus récent en premier)
-                        const allActivities = [...createdActivities, ...bidActivities]
-                            .sort((a, b) => b.date - a.date)
-                            .slice(0, 10); // Garder les 10 dernières
+                    // 3. Fusionner et trier (plus récent en premier)
+                    const allActivities = [...createdActivities, ...bidActivities]
+                        .sort((a, b) => b.date - a.date)
+                        .slice(0, 10);
 
-                        setStats({
-                            auctions: auctions.length,
-                            bids: bids.length,
-                            soldeCredit: profileStats.soldeCredit,
-                            montantBloque: profileStats.montantBloque,
-                            activities: allActivities
-                        });
-
-                    } catch (error) {
-                        console.error("Erreur récupération stats :", error);
-                    }
+                    setStats({
+                        auctions: auctions.length,
+                        bids: bids.length,
+                        soldeCredit: profileStats.soldeCredit,
+                        montantBloque: profileStats.montantBloque,
+                        activities: allActivities
+                    });
                 };
 
-                await fetchStats(userData.id, token);
+                await fetchStats(userData.id);
 
             } catch (error) {
                 console.error("Failed to initialize user:", error);
-                localStorage.clear();
-                navigate("/auth");
+                // Axios interceptor will handle redirect if 401
             } finally {
                 setLoading(false);
             }
         };
 
         initializeUser();
+
+        // POLL: Refresh stats every 5 seconds to catch auction endings/credit transfers
+        const intervalId = setInterval(() => {
+            const user = JSON.parse(localStorage.getItem("user"));
+            const token = localStorage.getItem("token");
+            if (user && token) {
+                // Only refetch specific stats for lightweight update
+                api.get(`/api/profile/stats`)
+                    .then(res => {
+                        const newStats = res.data;
+                        setStats(prev => {
+                            // Avoid re-render if nothing changed
+                            if (prev.soldeCredit === newStats.soldeCredit && prev.montantBloque === newStats.montantBloque) return prev;
+                            return { ...prev, soldeCredit: newStats.soldeCredit, montantBloque: newStats.montantBloque };
+                        });
+
+                        // Also update local storage user if balance changed (standard practice in this app)
+                        const currentUser = JSON.parse(localStorage.getItem("user"));
+                        if (currentUser && currentUser.soldeCredit !== newStats.soldeCredit) {
+                            const updated = { ...currentUser, soldeCredit: newStats.soldeCredit };
+                            localStorage.setItem("user", JSON.stringify(updated));
+                            setUser(updated);
+                        }
+                    })
+                    .catch(err => console.error("Polling stats error:", err));
+            }
+        }, 5000);
+
+        return () => clearInterval(intervalId);
     }, [navigate]);
 
     const handleLogout = () => {
@@ -115,6 +134,11 @@ const MyAccount = () => {
     const handleCreditsUpdated = (updatedUser) => {
         setUser(updatedUser); // Solde et autres infos utilisateur sont mises à jour
         localStorage.setItem("user", JSON.stringify(updatedUser));
+        // FIX: Update stats state immediately to reflect new credit balance without refresh
+        setStats(prev => ({
+            ...prev,
+            soldeCredit: updatedUser.soldeCredit
+        }));
     };
 
     if (loading) {
