@@ -26,7 +26,7 @@ const Auth = () => {
     }
 
     try {
-      const response = await api.post("/auth/verify", {
+      const response = await api.post("/api/auth/verify", {
         email: formData.email,
         code: verificationCode,
       });
@@ -53,7 +53,7 @@ const Auth = () => {
     }
 
     try {
-      const url = isLogin ? "/auth/authenticate" : "/auth/register";
+      const url = isLogin ? "/api/auth/authenticate" : "/api/auth/register";
       const body = isLogin
         ? { email, password }
         : { nom, email, password, roles: ["USER"] };
