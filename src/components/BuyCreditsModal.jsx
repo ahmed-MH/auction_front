@@ -9,7 +9,7 @@ import {
     useElements
 } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe("pk_test_51SZF9gRGlF6gfv1ZUMQSu9vbHe4yT9nmeYPo68kSBcXJ9Jzla6K3ChkVGYVaWXDGxbTQcgNdM4Bux2AZ6FqRjBdO008NiowEIY");
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const CheckoutForm = ({ user, onClose, onCreditsUpdated }) => {
     const stripe = useStripe();
