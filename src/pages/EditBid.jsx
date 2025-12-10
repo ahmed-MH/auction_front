@@ -51,10 +51,20 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
   if (!isUserLoaded) return <div>Chargement...</div>;
 
   // ❌ User non connecté → redirection
-  if (!currentUser) return <Navigate to="/auth" replace />;
-
-  // ❌ Mauvais rôle → redirection
-  if (currentUser.role !== "USER") return <Navigate to="/auth" replace />;
+  // Vérifier l'authentification directement depuis localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
+  const userRole = localStorage.getItem("userRole") || user?.role;
+  
+  // ❌ User non connecté → redirection
+  if (!user || !token) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  // ❌ Mauvais rôle → redirection (permettre USER uniquement)
+  if (userRole !== "USER" && user?.role !== "USER") {
+    return <Navigate to="/auth" replace />;
+  }
 
   // Gestion inputs
   const handleChange = (e) => {
@@ -99,9 +109,10 @@ const EditBid = ({ currentUser, isUserLoaded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
     if (!token) {
       alert("Vous devez être connecté.");
+      navigate("/auth");
       return;
     }
 

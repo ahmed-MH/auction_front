@@ -2,28 +2,19 @@ import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 import Navbar from "./Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { Phone, Mail, MapPin, User, LogOut, ChevronDown, ChevronUp, ShoppingCart, Heart } from "lucide-react";
+import { Phone, Mail, MapPin, User, LogOut, ShoppingCart, Heart } from "lucide-react";
 
 const Header = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoriesOpen, setCategoriesOpen] = useState(false); // pour le dropdown
-  const [categories, setCategories] = useState([]); // pour les données
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("user"));
-
-  useEffect(() => {
-    api.get("/api/categories")
-      .then(res => {
-        setCategories(res.data);
-      })
-      .catch(err => console.error("Erreur chargement catégories :", err));
-  }, []);
 
   const handleLogout = () => {
     if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
+      localStorage.removeItem("wishlist");
       setIsLoggedIn(null);
       window.location.href = "/";
     }
@@ -120,39 +111,8 @@ const Header = () => {
 
           {/* Search Bar */}
           <div className="flex-1 max-w-[754px] flex items-center gap-0 relative">
-            {/* Categories Dropdown */}
-            <div
-              className="relative flex items-center bg-[#ece6f0] rounded-l-[22px] border-r border-[#c9c9c9] h-[46px] px-4 cursor-pointer"
-              onClick={() => setCategoriesOpen(!categoriesOpen)}
-            >
-              <span className="font-medium text-black text-xl mr-2">
-                Categories
-              </span>
-              {categoriesOpen ? (
-                <ChevronUp className="w-4 h-4 text-black" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-black" />
-              )}
-
-              {/* Dropdown Menu */}
-              {categoriesOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 bg-white shadow-lg rounded-md z-50">
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.id}
-                      to={`/categories/${cat.libelleCategorie.toLowerCase().replace(/ & | /g, "-")}`}
-                      className="block px-4 py-2 text-gray-700 hover:bg-orange-100 hover:text-orange-600 transition-colors"
-                      onClick={() => setCategoriesOpen(false)}
-                    >
-                      {cat.libelleCategorie}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Search Input */}
-            <div className="flex-1 relative flex items-center bg-[#ece6f0] h-[44px] px-4">
+            <div className="flex-1 relative flex items-center bg-[#ece6f0] rounded-l-[22px] h-[44px] px-4">
               <input
                 type="text"
                 placeholder="search for a product..."

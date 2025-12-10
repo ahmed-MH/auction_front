@@ -67,7 +67,7 @@ const CheckoutForm = ({ user, onClose, onCreditsUpdated }) => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Bearer " + localStorage.getItem("token")
+                    Authorization: "Bearer " + (localStorage.getItem("token") || localStorage.getItem("jwtToken"))
                 },
                 body: JSON.stringify({ montant: credits }),
             });
@@ -98,7 +98,7 @@ const CheckoutForm = ({ user, onClose, onCreditsUpdated }) => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Bearer " + localStorage.getItem("token")
+                    Authorization: "Bearer " + (localStorage.getItem("token") || localStorage.getItem("jwtToken"))
                 },
                 body: JSON.stringify({ paymentIntentId: result.paymentIntent.id })
             });
